@@ -1,0 +1,310 @@
+PAGES: 3
+
+
+===== PAGE 1 =====
+Functional  Requirements  Document  
+(FRD):
+ 
+Development
+ 
+of
+ 
+a
+ 
+Mobile
+ 
+Application
+ 
+for
+ 
+Quran
+ 
+Learning
+ 
+and
+ 
+Teaching
+ 1.  Project  Overview  
+Development  of  a  Mobile  Application  for  Quran  Learning  and  Teaching  (also  referred  to  as  
+"Quran
+ 
+Connect")
+ 
+is
+ 
+a
+ 
+specialized
+ 
+marketplace
+ 
+application
+ 
+designed
+ 
+to
+ 
+bridge
+ 
+the
+ 
+gap
+ 
+between
+ 
+Quran
+ 
+students
+ 
+and
+ 
+qualified
+ 
+teachers.
+ 
+The
+ 
+platform
+ 
+serves
+ 
+as
+ 
+a
+ 
+discovery,
+ 
+vetting,
+ 
+and
+ 
+payment
+ 
+hub.
+ 
+While
+ 
+the
+ 
+initial
+ 
+connection
+ 
+and
+ 
+financial
+ 
+transactions
+ 
+happen
+ 
+within
+ 
+the
+ 
+app,
+ 
+the
+ 
+educational
+ 
+delivery
+ 
+is
+ 
+outsourced
+ 
+to
+ 
+established
+ 
+communication
+ 
+tools
+ 
+like
+ 
+WhatsApp
+ 
+and
+ 
+Telegram
+ 
+to
+ 
+ensure
+ 
+immediate
+ 
+scalability
+ 
+and
+ 
+a
+ 
+low-latency
+ 
+learning
+ 
+environment.
+ 
+2.  User  Personas  
+Persona  Goals  &  Needs  
+Student  Wants  to  find  a  compatible  Quran  teacher,  view  their  teaching  style  via  video,  check  student  reviews,  and  pay  securely.  
+Teacher  Wants  to  list  courses,  showcase  expertise  through  an  intro  video,  manage  earnings  in  a  digital  wallet,  and  communicate  with  students.  
+3.  Functional  Requirements  
+3.1  Teacher  Profiles  &  Course  Listings  
+●  Course  Management:  Teachers  can  create  listings  featuring  the  Course  Name,  detailed  
+description,
+ 
+and
+ 
+the
+ 
+specific
+ 
+Fee/Price.
+ ●  Introduction  Video:  Integration  of  a  high-performance  video  player.  ○  Technical  Note:  Use  Mux  or  Cloudinary  for  adaptive  bitrate  streaming  to  ensure  
+zero
+ 
+lag
+ 
+for
+ 
+students
+ 
+globally.
+ ●  WhatsApp  Integration:  A  "Contact  on  WhatsApp"  CTA  that  triggers  a  pre-filled  message  
+to
+ 
+the
+ 
+teacher's
+ 
+registered
+ 
+number.
+ 
+
+===== PAGE 2 =====
+3.2  Student  Feedback  System  
+●  Star  Ratings:  A  1-5  star  rating  system  for  students  to  rate  their  learning  experience.  ●  Written  Reviews:  A  text  area  for  students  to  leave  qualitative  feedback.  ●  Trust  Metrics:  Profiles  must  display  an  average  rating  and  total  number  of  reviews  to  
+establish
+ 
+social
+ 
+proof.
+ 
+3.3  In-App  Wallet  &  Financials  
+●  Wallet  Dashboard:  A  real-time  view  of  current  balance,  pending  funds,  and  total  
+earnings.
+ ●  Security  (KYC):  A  mandatory  Know  Your  Customer  module.  Teachers  must  upload  
+government
+ 
+ID
+ 
+and
+ 
+verify
+ 
+their
+ 
+identity
+ 
+before
+ 
+the
+ 
+"Withdraw"
+ 
+function
+ 
+is
+ 
+unlocked.
+ ●  Transactions:  Ability  to  "Deposit"  funds  for  students  and  "Withdraw"  to  local  bank  
+accounts
+ 
+or
+ 
+mobile
+ 
+money
+ 
+for
+ 
+teachers.
+ 
+4.  User  Journey  Map  
+1.  Discovery:  Student  browses  the  marketplace  and  filters  by  course  type.  2.  Evaluation:  Student  watches  the  teacher's  Intro  Video  and  reads  previous  student  
+ratings/reviews.
+ 3.  Inquiry:  Student  clicks  the  WhatsApp  button  to  discuss  scheduling  or  specific  needs.  4.  Payment:  Student  pays  the  course  fee  through  the  app;  funds  are  recorded  in  the  
+system.
+ 5.  Onboarding:  Teacher  provides  the  link  to  the  Private  Telegram  Channel  where  the  full  
+course
+ 
+material
+ 
+and
+ 
+live
+ 
+sessions
+ 
+reside.
+ 
+5.  Technical  Recommendations  
+Feature  Recommended  Integration  
+Video  Hosting  Mux  Video  API  (for  fast,  optimized  playback)  
+Communication  WhatsApp  Business  API  /  Telegram  Bot  API  
+Payments  Stripe,  PayPal,  or  local  Mobile  Money  APIs  
+Identity  Verification  Jumio  or  Onfido  (for  automated  KYC)  
+6.  Scalability  Strategy  
+By  utilizing  the  Marketplace  Model ,  the  application  avoids  the  high  overhead  of  building  custom  
+
+===== PAGE 3 =====
+video-conferencing  software.  Leveraging  Telegram  for  course  delivery  allows  the  platform  to  
+support
+ 
+thousands
+ 
+of
+ 
+concurrent
+ 
+students
+ 
+with
+ 
+minimal
+ 
+server
+ 
+costs
+ 
+on
+ 
+the
+ 
+app
+ 
+side,
+ 
+focusing
+ 
+development
+ 
+efforts
+ 
+on
+ 
+the
+ 
+financial
+ 
+and
+ 
+discovery
+ 
+modules.
+ 
