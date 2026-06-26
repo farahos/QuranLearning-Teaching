@@ -10,6 +10,9 @@ function signToken(user) {
 
 async function register(req, res) {
   const { fullName, email, password, role } = req.body;
+  if (!["student", "teacher"].includes(role)) {
+    return res.status(400).json({ message: "Only student and teacher registration is available from the app" });
+  }
   const existing = await User.findOne({ email: email.toLowerCase() });
   if (existing) {
     return res.status(409).json({ message: "Email already exists" });

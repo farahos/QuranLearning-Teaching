@@ -1,6 +1,9 @@
-﻿const Transaction = require("../models/Transaction");
+const Transaction = require("../models/Transaction");
 const User = require("../models/User");
 const Course = require("../models/Course");
+const { purchaseWithMobileMoney } = require("../services/waafiPayService");
+
+const PAYMENT_METHODS = new Set(["EVC Plus", "Zaad", "Sahal"]);
 
 async function walletDashboard(req, res) {
   const user = await User.findById(req.user.id).select("walletBalance totalEarnings totalCommissionEarnings role kycStatus");
@@ -20,6 +23,21 @@ async function payCourse(req, res) {
     return res.status(403).json({ message: "Only students can buy courses" });
   }
 
+  const alreadyEnrolled = course.enrolledStudents.some((entry) => entry.student.toString() === student._id.toString());
+  if (alreadyEnrolled) {
+    const teacher = await User.findById(course.teacher);
+    return res.json({
+      message: "You are already enrolled in this course",
+      alreadyEnrolled: true,
+      telegramChannelLink: teacher?.telegramChannelLink,
+    });
+  }
+
+  const selectedPaymentMethod = paymentMethod || "EVC Plus";
+  if (!PAYMENT_METHODS.has(selectedPaymentMethod)) {
+    return res.status(400).json({ message: "Supported payment methods are EVC Plus, Zaad, and Sahal" });
+  }
+
   const teacher = await User.findById(course.teacher);
   const admin = await User.findOne({ role: "admin" });
   if (!teacher) {
@@ -32,16 +50,38 @@ async function payCourse(req, res) {
   const commissionRate = course.commissionRate || 0.2;
   const adminCommission = Number((course.price * commissionRate).toFixed(2));
   const teacherIncome = Number((course.price - adminCommission).toFixed(2));
+  const referenceId = `QC-${Date.now()}-${student._id.toString().slice(-6)}`;
+  const invoiceId = course._id.toString();
 
-  const alreadyEnrolled = course.enrolledStudents.some((entry) => entry.student.toString() === student._id.toString());
-  if (!alreadyEnrolled) {
-    course.enrolledStudents.push({
-      student: student._id,
-      paymentMethod,
-      phoneNumber
+  const payment = await purchaseWithMobileMoney({
+    phoneNumber,
+    amount: course.price,
+    description: `Payment for ${course.courseName}`,
+    referenceId,
+    invoiceId,
+    paymentMethod: selectedPaymentMethod,
+  });
+
+  if (!payment.ok) {
+    await Transaction.create({
+      user: student._id,
+      type: "course_payment",
+      amount: course.price,
+      status: "failed",
+      note: `Failed ${selectedPaymentMethod} payment for ${course.courseName}: ${payment.message}`,
     });
-    await course.save();
+    return res.status(payment.statusCode || 402).json({
+      message: payment.message || "Payment failed. Course was not unlocked.",
+      payment: payment.data,
+    });
   }
+
+  course.enrolledStudents.push({
+    student: student._id,
+    paymentMethod: selectedPaymentMethod,
+    phoneNumber: payment.accountNo || phoneNumber,
+  });
+  await course.save();
 
   teacher.walletBalance += teacherIncome;
   teacher.totalEarnings += teacherIncome;
@@ -56,27 +96,28 @@ async function payCourse(req, res) {
     type: "course_payment",
     amount: course.price,
     status: "completed",
-    note: `Payment for ${course.courseName}${paymentMethod ? ` via ${paymentMethod}` : ""}${phoneNumber ? ` (${phoneNumber})` : ""}`
+    note: `${selectedPaymentMethod} payment for ${course.courseName} (${referenceId})`,
   });
   await Transaction.create({
     user: teacher._id,
     type: "course_income",
     amount: teacherIncome,
     status: "completed",
-    note: `Income from ${course.courseName}`
+    note: `Income from ${course.courseName}`,
   });
   await Transaction.create({
     user: admin._id,
     type: "admin_commission",
     amount: adminCommission,
     status: "completed",
-    note: `Commission from ${course.courseName}`
+    note: `Commission from ${course.courseName}`,
   });
 
   return res.json({
     message: "Payment completed",
+    paymentReference: referenceId,
     split: { teacherIncome, adminCommission, commissionRate },
-    telegramChannelLink: teacher.telegramChannelLink
+    telegramChannelLink: teacher.telegramChannelLink,
   });
 }
 

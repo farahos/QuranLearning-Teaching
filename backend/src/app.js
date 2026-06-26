@@ -10,6 +10,7 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const walletRoutes = require("./routes/walletRoutes");
 const kycRoutes = require("./routes/kycRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/kyc", kycRoutes);
 app.use("/api/uploads", uploadRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
