@@ -1,44 +1,10 @@
 import 'package:flutter/material.dart';
 
-class AppColors {
-  static const green = Color(0xFF16A34A);
-  static const greenAlt = Color(0xFF18A558);
-  static const textDark = Color(0xFF111827);
-  static const textMuted = Color(0xFF6B7280);
-  static const inputBackground = Color(0xFFF3F4F6);
-  static const border = Color(0xFFE5E7EB);
-  static const surface = Colors.white;
-  static const scaffold = Colors.white;
-}
+import 'app_colors.dart';
 
-class AppSpacing {
-  static const xs = 8.0;
-  static const sm = 12.0;
-  static const md = 16.0;
-  static const lg = 24.0;
-  static const xl = 32.0;
-}
-
-class AppTextStyles {
-  static const title = TextStyle(
-    color: AppColors.green,
-    fontSize: 18,
-    fontWeight: FontWeight.w800,
-  );
-
-  static const heading = TextStyle(
-    color: AppColors.textDark,
-    fontSize: 31,
-    fontWeight: FontWeight.w800,
-    height: 1.12,
-  );
-
-  static const body = TextStyle(
-    color: AppColors.textMuted,
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-  );
-}
+export 'app_colors.dart';
+export 'app_spacing.dart';
+export 'app_text_styles.dart';
 
 class AppTheme {
   static ThemeData light() {

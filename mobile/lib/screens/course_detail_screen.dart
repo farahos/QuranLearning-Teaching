@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../models/course_model.dart';
 import '../providers/app_state.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/primary_button.dart';
+import '../widgets/section_title.dart';
 
 class CourseDetailScreen extends StatefulWidget {
-  final CourseModel course;
   const CourseDetailScreen({super.key, required this.course});
+
+  final CourseModel course;
 
   @override
   State<CourseDetailScreen> createState() => _CourseDetailScreenState();
@@ -35,142 +40,112 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     final ratingText = teacher.averageRating == 0 ? 'New' : teacher.averageRating.toStringAsFixed(1);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF050505),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 280,
-            backgroundColor: const Color(0xFF050505),
-            foregroundColor: Colors.white,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if ((c.coverImageUrl ?? '').isEmpty)
-                    Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(colors: [Color(0xFF1B7F79), Color(0xFF101010)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                      ),
-                      child: const Icon(Icons.menu_book_rounded, color: Colors.white, size: 82),
-                    )
-                  else
-                    Image.network(ApiService.mediaUrl(c.coverImageUrl!), fit: BoxFit.cover),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.black.withOpacity(0.15), Colors.black.withOpacity(0.9)],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 18,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(c.category, style: const TextStyle(color: Color(0xFF9FDB9C), fontWeight: FontWeight.w800)),
-                        const SizedBox(height: 6),
-                        Text(c.courseName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 28, height: 1.08, fontWeight: FontWeight.w900)),
-                        const SizedBox(height: 8),
-                        Text(c.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+      backgroundColor: AppColors.scaffold,
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: AppColors.surface,
+        foregroundColor: AppColors.textDark,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.small(
+        tooltip: 'Message teacher',
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.green,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(999),
+          side: const BorderSide(color: AppColors.green),
+        ),
+        onPressed: () => _contactTeacher(teacher.whatsappNumber),
+        child: const Icon(Icons.chat_outlined),
+      ),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: PrimaryButton(
+          label: 'Buy Course',
+          onPressed: () => _showCheckout(context, app, c),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        children: [
+          _CourseBanner(course: c),
+          const SizedBox(height: AppSpacing.lg),
+          Text(c.category, style: const TextStyle(color: AppColors.green, fontWeight: FontWeight.w900)),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            c.courseName,
+            style: const TextStyle(
+              color: AppColors.textDark,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              height: 1.12,
             ),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatChip(icon: Icons.star, label: ratingText, detail: '${teacher.totalReviews} reviews'),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _StatChip(icon: Icons.play_circle_outline, label: '${c.lessons.length}', detail: 'lessons'),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _StatChip(icon: Icons.payments_outlined, label: '\$${c.price.toStringAsFixed(2)}', detail: 'price'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  _InstructorCard(
-                    name: teacher.fullName,
-                    imageUrl: teacher.profileImageUrl,
-                    rating: ratingText,
-                    reviews: teacher.totalReviews,
-                    experience: teacherExperience.isEmpty ? 'Experienced Quran instructor. Course details and teaching background will appear here when the instructor updates their profile.' : teacherExperience,
-                  ),
-                  const SizedBox(height: 18),
-                  _SectionCard(
-                    title: 'What you will learn',
-                    child: Text(c.description, style: const TextStyle(color: Colors.white70, height: 1.35)),
-                  ),
-                  const SizedBox(height: 18),
-                  _SectionCard(
-                    title: 'Lessons',
-                    child: c.lessons.isEmpty
-                        ? const Text('Lessons will appear here after the instructor adds them.', style: TextStyle(color: Colors.white60))
-                        : Column(
-                            children: c.lessons.asMap().entries.map((entry) {
-                              return ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: CircleAvatar(
-                                  backgroundColor: const Color(0xFF1B5E20),
-                                  foregroundColor: Colors.white,
-                                  child: Text('${entry.key + 1}'),
-                                ),
-                                title: Text(entry.value.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                                subtitle: const Text('Video lesson', style: TextStyle(color: Colors.white60)),
-                                trailing: const Icon(Icons.lock_outline, color: Colors.white54),
-                              );
-                            }).toList(),
-                          ),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () => _showCheckout(context, app, c),
-                          icon: const Icon(Icons.shopping_cart_checkout),
-                          label: const Text('Buy Course'),
+          const SizedBox(height: AppSpacing.sm),
+          Text(c.description, style: AppTextStyles.body),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(child: _StatCard(icon: Icons.star_rounded, label: ratingText, detail: '${teacher.totalReviews} reviews')),
+              const SizedBox(width: 10),
+              Expanded(child: _StatCard(icon: Icons.play_circle_outline, label: '${c.lessons.length}', detail: 'lessons')),
+              const SizedBox(width: 10),
+              Expanded(child: _StatCard(icon: Icons.payments_outlined, label: '\$${c.price.toStringAsFixed(2)}', detail: 'price')),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _InstructorCard(
+            name: teacher.fullName,
+            imageUrl: teacher.profileImageUrl,
+            rating: ratingText,
+            reviews: teacher.totalReviews,
+            experience: teacherExperience.isEmpty
+                ? 'Experienced Quran instructor. Course details and teaching background will appear here when the instructor updates their profile.'
+                : teacherExperience,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _InfoCard(
+            title: 'What you will learn',
+            child: Text(c.description, style: AppTextStyles.body),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _InfoCard(
+            title: 'Lessons',
+            child: c.lessons.isEmpty
+                ? const Text('Lessons will appear here after the instructor adds them.', style: AppTextStyles.body)
+                : Column(
+                    children: c.lessons.asMap().entries.map((entry) {
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.greenSoft,
+                          foregroundColor: AppColors.green,
+                          child: Text('${entry.key + 1}'),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      IconButton.filledTonal(
-                        tooltip: 'WhatsApp',
-                        onPressed: () => _contactTeacher(teacher.whatsappNumber),
-                        icon: const Icon(Icons.chat_outlined),
-                      ),
-                    ],
+                        title: Text(
+                          entry.value.title,
+                          style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w900),
+                        ),
+                        subtitle: const Text('Video lesson', style: AppTextStyles.small),
+                        trailing: const Icon(Icons.lock_outline, color: AppColors.textMuted),
+                      );
+                    }).toList(),
                   ),
-                  const SizedBox(height: 18),
-                  _ReviewCard(
-                    rating: rating,
-                    comment: comment,
-                    onRatingChanged: (value) => setState(() => rating = value ?? 5),
-                    onSubmit: () async {
-                      await app.addReview(c.id, teacher.id, rating, comment.text.trim());
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted')));
-                    },
-                  ),
-                ],
-              ),
-            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _ReviewCard(
+            rating: rating,
+            comment: comment,
+            onRatingChanged: (value) => setState(() => rating = value ?? 5),
+            onSubmit: () async {
+              await app.addReview(c.id, teacher.id, rating, comment.text.trim());
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted')));
+            },
           ),
         ],
       ),
@@ -183,23 +158,31 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   }
 
   Future<void> _showCheckout(BuildContext context, AppState app, CourseModel course) async {
+    var isProcessing = false;
+
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) => Padding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+          padding: EdgeInsets.fromLTRB(16, 18, 16, MediaQuery.of(context).viewInsets.bottom + 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Checkout', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 6),
-              Text(course.courseName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70)),
-              const SizedBox(height: 4),
-              Text('\$${course.price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 16),
+              const SectionTitle('Checkout'),
+              const SizedBox(height: AppSpacing.xs),
+              Text(course.courseName, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppTextStyles.body),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '\$${course.price.toStringAsFixed(2)}',
+                style: const TextStyle(color: AppColors.textDark, fontSize: 18, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: AppSpacing.md),
               SegmentedButton<String>(
                 segments: const [
                   ButtonSegment(value: 'EVC Plus', label: Text('EVC')),
@@ -207,30 +190,56 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                   ButtonSegment(value: 'Sahal', label: Text('Sahal')),
                 ],
                 selected: {paymentMethod},
-                onSelectionChanged: (value) => setSheetState(() => paymentMethod = value.first),
+                onSelectionChanged: isProcessing ? null : (value) => setSheetState(() => paymentMethod = value.first),
+                style: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.resolveWith(
+                    (states) => states.contains(WidgetState.selected) ? AppColors.greenSoft : AppColors.surface,
+                  ),
+                  foregroundColor: WidgetStateProperty.resolveWith(
+                    (states) => states.contains(WidgetState.selected) ? AppColors.green : AppColors.textDark,
+                  ),
+                  side: WidgetStateProperty.resolveWith(
+                    (states) => BorderSide(color: states.contains(WidgetState.selected) ? AppColors.green : AppColors.border),
+                  ),
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               TextField(
                 controller: paymentPhone,
+                enabled: !isProcessing,
                 keyboardType: TextInputType.phone,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(labelText: '$paymentMethod phone number', border: const OutlineInputBorder()),
+                decoration: InputDecoration(labelText: '$paymentMethod phone number'),
               ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.shopping_cart_checkout),
-                  label: const Text('Confirm purchase'),
-                  onPressed: () async {
-                    final data = await app.buyCourse(course.id, paymentMethod, paymentPhone.text.trim());
-                    if (!context.mounted) return;
-                    Navigator.pop(sheetContext);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Course purchased. Telegram: ${data['telegramChannelLink'] ?? 'Not provided'}')),
-                    );
-                  },
-                ),
+              const SizedBox(height: AppSpacing.md),
+              PrimaryButton(
+                label: isProcessing ? 'Processing payment' : 'Confirm purchase',
+                loading: isProcessing,
+                onPressed: isProcessing
+                    ? null
+                    : () async {
+                        if (paymentPhone.text.trim().isEmpty) {
+                          final message = 'Fadlan geli number-ka $paymentMethod.';
+                          _showPaymentSnack(context, message: message, success: false);
+                          return;
+                        }
+
+                        setSheetState(() => isProcessing = true);
+                        try {
+                          await app.buyCourse(course.id, paymentMethod, paymentPhone.text.trim());
+                          if (!context.mounted) return;
+                          Navigator.pop(sheetContext);
+                          _showPaymentSnack(
+                            context,
+                            success: true,
+                            message: 'Lacag bixinta way guuleysatay. Course-ka waa laguu furay.',
+                          );
+                        } catch (error) {
+                          if (!context.mounted) return;
+                          final message = _friendlyPaymentMessage(error);
+                          setSheetState(() => isProcessing = false);
+                          _showPaymentSnack(context, message: message, success: false);
+                        }
+                      },
               ),
             ],
           ),
@@ -240,18 +249,134 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   }
 }
 
+void _showPaymentSnack(BuildContext context, {required String message, required bool success}) {
+  final color = success ? AppColors.green : const Color(0xFFDC2626);
+  final overlay = Overlay.maybeOf(context);
+  if (overlay == null) return;
+
+  late final OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (context) {
+      final size = MediaQuery.sizeOf(context);
+      final safeTop = MediaQuery.paddingOf(context).top;
+      final toastWidth = size.width < 520 ? size.width - 32 : 380.0;
+
+      return Positioned(
+        top: safeTop + 16,
+        right: 16,
+        width: toastWidth,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.28),
+                  blurRadius: 22,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(success ? Icons.check_circle_outline : Icons.error_outline, color: Colors.white),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, height: 1.25),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  overlay.insert(entry);
+  Future<void>.delayed(const Duration(seconds: 4), () {
+    if (entry.mounted) entry.remove();
+  });
+}
+
+String _friendlyPaymentMessage(Object error) {
+  final raw = error.toString().replaceFirst('Exception: ', '').trim();
+  final lower = raw.toLowerCase();
+
+  if (lower.contains('cancel') || lower.contains('cancelled') || lower.contains('canceled')) {
+    return 'Lacag bixinta waa la kansalay. Fadlan isku day mar kale.';
+  }
+  if (lower.contains('reject') || lower.contains('declin') || lower.contains('denied') || lower.contains('diid')) {
+    return 'Lacag bixinta waa la diiday. Hubi number-ka ama ogolaanshaha telefoonka.';
+  }
+  if (lower.contains('insufficient') || lower.contains('balance') || lower.contains('haraag') || lower.contains('fund')) {
+    return 'Haraagaagu kuguma filna. Fadlan ku shubo lacag kadibna isku day mar kale.';
+  }
+  if (lower.contains('timeout') || lower.contains('timed out')) {
+    return 'Request-ka lacag bixinta wuu dhacay. Fadlan isku day mar kale.';
+  }
+  if (lower.contains('phone number') || lower.contains('account')) {
+    return 'Number-ka lacag bixinta sax ma aha ama lama helin. Fadlan hubi number-ka.';
+  }
+  if (lower.contains('provider') || lower.contains('unavailable') || lower.contains('network')) {
+    return 'Adeegga lacag bixinta hadda lama heli karo. Fadlan mar kale isku day.';
+  }
+  if (raw.isNotEmpty && raw.length < 110) {
+    return raw;
+  }
+  return 'Lacag bixinta ma dhammaystirmin. Fadlan hubi xogta kadibna isku day mar kale.';
+}
+
+class _CourseBanner extends StatelessWidget {
+  const _CourseBanner({required this.course});
+
+  final CourseModel course;
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFE8F7EE), Color(0xFFCFF3DB)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: (course.coverImageUrl ?? '').isEmpty
+            ? const Center(child: Icon(Icons.menu_book_rounded, color: AppColors.green, size: 78))
+            : Image.network(ApiService.mediaUrl(course.coverImageUrl!), fit: BoxFit.cover),
+      ),
+    );
+  }
+}
+
 class _InstructorCard extends StatelessWidget {
+  const _InstructorCard({
+    required this.name,
+    required this.imageUrl,
+    required this.rating,
+    required this.reviews,
+    required this.experience,
+  });
+
   final String name;
   final String? imageUrl;
   final String rating;
   final int reviews;
   final String experience;
 
-  const _InstructorCard({required this.name, required this.imageUrl, required this.rating, required this.reviews, required this.experience});
-
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
+    return _InfoCard(
       title: 'Instructor',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,75 +385,76 @@ class _InstructorCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 28,
-                backgroundColor: const Color(0xFF1B5E20),
+                backgroundColor: AppColors.greenSoft,
+                foregroundColor: AppColors.green,
                 backgroundImage: (imageUrl ?? '').isEmpty ? null : NetworkImage(ApiService.mediaUrl(imageUrl!)),
-                child: (imageUrl ?? '').isEmpty ? const Icon(Icons.person_outline, color: Colors.white) : null,
+                child: (imageUrl ?? '').isEmpty ? const Icon(Icons.person_outline) : null,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+                    Text(name, style: const TextStyle(color: AppColors.textDark, fontSize: 18, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 4),
-                    Text('$rating rating - $reviews reviews', style: const TextStyle(color: Colors.white60)),
+                    Text('$rating rating - $reviews reviews', style: AppTextStyles.small),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          const Text('Experience', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+          const SizedBox(height: AppSpacing.md),
+          const Text('Experience', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w900)),
           const SizedBox(height: 6),
-          Text(experience, style: const TextStyle(color: Colors.white70, height: 1.35)),
+          Text(experience, style: AppTextStyles.body),
         ],
       ),
     );
   }
 }
 
-class _StatChip extends StatelessWidget {
+class _StatCard extends StatelessWidget {
+  const _StatCard({required this.icon, required this.label, required this.detail});
+
   final IconData icon;
   final String label;
   final String detail;
 
-  const _StatChip({required this.icon, required this.label, required this.detail});
-
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFF151515), borderRadius: BorderRadius.circular(8)),
+      padding: const EdgeInsets.all(13),
+      decoration: _detailCardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: const Color(0xFF9FDB9C), size: 20),
-          const SizedBox(height: 8),
-          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-          Text(detail, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          Icon(icon, color: AppColors.green, size: 20),
+          const SizedBox(height: AppSpacing.xs),
+          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w900)),
+          Text(detail, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.small),
         ],
       ),
     );
   }
 }
 
-class _SectionCard extends StatelessWidget {
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.title, required this.child});
+
   final String title;
   final Widget child;
-
-  const _SectionCard({required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF151515), borderRadius: BorderRadius.circular(8)),
+      padding: const EdgeInsets.all(18),
+      decoration: _detailCardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 10),
+          Text(title, style: const TextStyle(color: AppColors.textDark, fontSize: 18, fontWeight: FontWeight.w900)),
+          const SizedBox(height: AppSpacing.sm),
           child,
         ],
       ),
@@ -337,39 +463,56 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _ReviewCard extends StatelessWidget {
+  const _ReviewCard({
+    required this.rating,
+    required this.comment,
+    required this.onRatingChanged,
+    required this.onSubmit,
+  });
+
   final int rating;
   final TextEditingController comment;
   final ValueChanged<int?> onRatingChanged;
   final VoidCallback onSubmit;
 
-  const _ReviewCard({required this.rating, required this.comment, required this.onRatingChanged, required this.onSubmit});
-
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
+    return _InfoCard(
       title: 'Leave Review',
       child: Column(
         children: [
           DropdownButtonFormField<int>(
-            value: rating,
-            decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Rating'),
+            initialValue: rating,
+            decoration: const InputDecoration(labelText: 'Rating'),
             items: [1, 2, 3, 4, 5].map((e) => DropdownMenuItem(value: e, child: Text('$e Star'))).toList(),
             onChanged: onRatingChanged,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.sm),
           TextField(
             controller: comment,
             minLines: 2,
             maxLines: 4,
-            decoration: const InputDecoration(labelText: 'Comment', border: OutlineInputBorder()),
+            decoration: const InputDecoration(labelText: 'Comment'),
           ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(onPressed: onSubmit, child: const Text('Submit Review')),
-          ),
+          const SizedBox(height: AppSpacing.sm),
+          PrimaryButton(onPressed: onSubmit, label: 'Submit Review'),
         ],
       ),
     );
   }
+}
+
+BoxDecoration _detailCardDecoration() {
+  return BoxDecoration(
+    color: AppColors.surface,
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(color: AppColors.border),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.05),
+        blurRadius: 22,
+        offset: const Offset(0, 10),
+      ),
+    ],
+  );
 }

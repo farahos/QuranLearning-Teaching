@@ -2,6 +2,7 @@
 import 'package:provider/provider.dart';
 import 'providers/app_state.dart';
 import 'screens/auth_screen.dart';
+import 'screens/admin_screen.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -23,9 +24,14 @@ class QuranConnectApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Quran Connect',
       theme: AppTheme.light(),
-      themeMode: ThemeMode.light,
+      darkTheme: AppTheme.light(),
+      themeMode: context.watch<AppState>().darkMode ? ThemeMode.dark : ThemeMode.light,
       home: Consumer<AppState>(
-        builder: (_, state, __) => state.isLoggedIn ? const HomeScreen() : const AuthScreen(),
+        builder: (_, state, __) {
+          if (!state.isLoggedIn) return const AuthScreen();
+          if (state.currentUser?.role == 'admin') return const AdminScreen();
+          return const HomeScreen();
+        },
       ),
     );
   }

@@ -4,9 +4,18 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../models/course_model.dart';
 import '../providers/app_state.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_bottom_nav.dart';
+import '../widgets/category_chip.dart';
+import '../widgets/course_card.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/primary_button.dart';
+import '../widgets/section_title.dart';
+import '../widgets/setting_tile.dart';
 import 'course_detail_screen.dart';
 import 'teacher_tools_screen.dart';
 
@@ -20,6 +29,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _tabIndex = 0;
   String _search = '';
+  String _category = 'Quran';
+
+  static const _categories = ['Quran', 'Tajweed', 'Hifz', 'Arabic', 'Hadith'];
 
   @override
   void initState() {
@@ -37,36 +49,48 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
     final isTeacher = app.currentUser?.role == 'teacher';
-
-    final pages = isTeacher ? [
-      const TeacherToolsScreen(embedded: true),
-      _SearchTab(
-        courses: app.courses,
-        search: _search,
-        onChanged: (value) => setState(() => _search = value),
-      ),
-      const _TeacherStudentsTab(),
-      const _SettingsTab(),
-    ] : [
-      _FeaturedTab(courses: app.courses),
-      _SearchTab(
-        courses: app.courses,
-        search: _search,
-        onChanged: (value) => setState(() => _search = value),
-      ),
-      _CourseCollectionTab(
-        title: 'My learning',
-        emptyMessage: 'Courses you pay for will appear here.',
-        courses: app.courses.where((course) => app.learningCourseIds.contains(course.id)).toList(),
-      ),
-      _CourseCollectionTab(
-        title: 'Favorite',
-        emptyMessage: 'Tap the heart on a course to save it here.',
-        courses: app.courses.where((course) => app.favoriteCourseIds.contains(course.id)).toList(),
-      ),
-      const _SettingsTab(),
-    ];
+    final pages = isTeacher
+        ? [
+            const TeacherToolsScreen(embedded: true),
+            _SearchTab(
+              courses: app.courses,
+              search: _search,
+              category: _category,
+              categories: _categories,
+              onSearchChanged: (value) => setState(() => _search = value),
+              onCategoryChanged: (value) => setState(() => _category = value),
+            ),
+            const _TeacherStudentsTab(),
+            const _SettingsTab(),
+          ]
+        : [
+            _FeaturedTab(
+              courses: app.courses,
+              category: _category,
+              categories: _categories,
+              onCategoryChanged: (value) => setState(() => _category = value),
+            ),
+            _SearchTab(
+              courses: app.courses,
+              search: _search,
+              category: _category,
+              categories: _categories,
+              onSearchChanged: (value) => setState(() => _search = value),
+              onCategoryChanged: (value) => setState(() => _category = value),
+            ),
+            _MyLearningTab(
+              courses: app.courses.where((course) => app.learningCourseIds.contains(course.id)).toList(),
+            ),
+            _CourseCollectionTab(
+              title: 'Favorite',
+              emptyMessage: 'No favorite courses yet',
+              icon: Icons.favorite_border,
+              courses: app.courses.where((course) => app.favoriteCourseIds.contains(course.id)).toList(),
+            ),
+            const _SettingsTab(),
+          ];
     final selectedIndex = _tabIndex >= pages.length ? 0 : _tabIndex;
+
     final destinations = isTeacher
         ? const [
             NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
@@ -77,46 +101,29 @@ class _HomeScreenState extends State<HomeScreen> {
         : const [
             NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
             NavigationDestination(icon: Icon(Icons.search), label: 'Search'),
-            NavigationDestination(icon: Icon(Icons.play_circle_outline), selectedIcon: Icon(Icons.play_circle), label: 'My learning'),
+            NavigationDestination(icon: Icon(Icons.play_circle_outline), selectedIcon: Icon(Icons.play_circle), label: 'My Learning'),
             NavigationDestination(icon: Icon(Icons.favorite_border), selectedIcon: Icon(Icons.favorite), label: 'Favorite'),
             NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'Setting'),
           ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF050505),
+      backgroundColor: AppColors.scaffold,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF050505),
-        foregroundColor: Colors.white,
-        title: const Text('Quran Learning'),
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: AppColors.surface,
+        foregroundColor: AppColors.textDark,
+        elevation: 0,
+        title: selectedIndex == 0 ? null : const Text('Quran Learning', style: AppTextStyles.appBarTitle),
       ),
-      body: isTeacher
-          ? pages[selectedIndex]
-          : RefreshIndicator(
-              onRefresh: app.fetchCourses,
-              child: pages[selectedIndex],
-            ),
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          backgroundColor: Colors.black,
-          indicatorColor: Colors.white.withOpacity(0.12),
-          labelTextStyle: MaterialStateProperty.resolveWith(
-            (states) => TextStyle(
-              color: states.contains(MaterialState.selected) ? Colors.white : Colors.white54,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          iconTheme: MaterialStateProperty.resolveWith(
-            (states) => IconThemeData(
-              color: states.contains(MaterialState.selected) ? Colors.white : Colors.white54,
-            ),
-          ),
-        ),
-        child: NavigationBar(
-          selectedIndex: selectedIndex,
-          onDestinationSelected: (index) => setState(() => _tabIndex = index),
-          destinations: destinations,
-        ),
+      body: RefreshIndicator(
+        color: AppColors.green,
+        onRefresh: isTeacher && selectedIndex == 2 ? app.fetchTeacherStudents : app.fetchCourses,
+        child: pages[selectedIndex],
+      ),
+      bottomNavigationBar: AppBottomNav(
+        selectedIndex: selectedIndex,
+        onDestinationSelected: (index) => setState(() => _tabIndex = index),
+        destinations: destinations,
       ),
     );
   }
@@ -140,47 +147,47 @@ class _TeacherStudentsTabState extends State<_TeacherStudentsTab> {
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
     final courses = app.teacherStudentCourses;
-    final totalStudents = courses.fold<int>(0, (sum, course) => sum + ((course['enrolledStudents'] ?? []) as List).length);
+    final totalStudents = courses.fold<int>(
+      0,
+      (sum, course) => sum + ((course['enrolledStudents'] ?? []) as List).length,
+    );
 
-    return RefreshIndicator(
-      onRefresh: app.fetchTeacherStudents,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-        children: [
-          const _SectionTitle(title: 'Students'),
-          const SizedBox(height: 8),
-          Text('$totalStudents students bought your courses', style: const TextStyle(color: Colors.white60, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 18),
-          if (totalStudents == 0)
-            const _EmptyPanel(message: 'Students who buy your courses will appear here.')
-          else
-            ...courses.map((course) {
-              final students = (course['enrolledStudents'] ?? []) as List;
-              if (students.isEmpty) return const SizedBox.shrink();
-              return _TeacherStudentCourseGroup(courseName: course['courseName'] ?? 'Course', students: students);
-            }),
-        ],
-      ),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+      children: [
+        const SectionTitle('Students'),
+        const SizedBox(height: AppSpacing.xs),
+        Text('$totalStudents students bought your courses', style: AppTextStyles.body),
+        const SizedBox(height: AppSpacing.lg),
+        if (totalStudents == 0)
+          const EmptyState(message: 'Students who buy your courses will appear here.', icon: Icons.people_outline)
+        else
+          ...courses.map((course) {
+            final students = (course['enrolledStudents'] ?? []) as List;
+            if (students.isEmpty) return const SizedBox.shrink();
+            return _TeacherStudentCourseGroup(courseName: course['courseName'] ?? 'Course', students: students);
+          }),
+      ],
     );
   }
 }
 
 class _TeacherStudentCourseGroup extends StatelessWidget {
+  const _TeacherStudentCourseGroup({required this.courseName, required this.students});
+
   final String courseName;
   final List students;
-
-  const _TeacherStudentCourseGroup({required this.courseName, required this.students});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: const Color(0xFF151515), borderRadius: BorderRadius.circular(8)),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(courseName, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
+          Text(courseName, style: const TextStyle(color: AppColors.textDark, fontSize: 17, fontWeight: FontWeight.w900)),
           const SizedBox(height: 10),
           ...students.map((entry) {
             final entryMap = entry as Map<String, dynamic>;
@@ -192,16 +199,17 @@ class _TeacherStudentCourseGroup extends StatelessWidget {
             return ListTile(
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
-                backgroundColor: const Color(0xFF1B5E20),
+                backgroundColor: AppColors.greenSoft,
+                foregroundColor: AppColors.green,
                 backgroundImage: image.isEmpty ? null : NetworkImage(ApiService.mediaUrl(image)),
-                child: image.isEmpty ? const Icon(Icons.person_outline, color: Colors.white) : null,
+                child: image.isEmpty ? const Icon(Icons.person_outline) : null,
               ),
-              title: Text(student['fullName'] ?? 'Student', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+              title: Text(student['fullName'] ?? 'Student', style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w800)),
               subtitle: Text(
                 '$email${purchasedDate.isEmpty ? '' : '\nPurchased: $purchasedDate'}',
-                style: const TextStyle(color: Colors.white60),
+                style: AppTextStyles.small,
               ),
-              trailing: Text(entryMap['paymentMethod'] ?? '', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              trailing: Text(entryMap['paymentMethod'] ?? '', style: AppTextStyles.small),
             );
           }),
         ],
@@ -211,88 +219,456 @@ class _TeacherStudentCourseGroup extends StatelessWidget {
 }
 
 class _FeaturedTab extends StatelessWidget {
-  final List<CourseModel> courses;
+  const _FeaturedTab({
+    required this.courses,
+    required this.category,
+    required this.categories,
+    required this.onCategoryChanged,
+  });
 
-  const _FeaturedTab({required this.courses});
+  final List<CourseModel> courses;
+  final String category;
+  final List<String> categories;
+  final ValueChanged<String> onCategoryChanged;
 
   @override
   Widget build(BuildContext context) {
-    final featured = courses.take(6).toList();
-    final shortCourses = courses.skip(1).take(6).toList();
+    final app = context.watch<AppState>();
+    final enrolledCourses = courses.where((course) => app.learningCourseIds.contains(course.id)).toList();
+    final categoryCourses = courses.where((course) => course.category.toLowerCase().contains(category.toLowerCase())).toList();
+    final recommended = (categoryCourses.isEmpty ? courses : categoryCourses).take(8).toList();
+    final topRated = [...courses]
+      ..sort((a, b) => (b.teacher.averageRating == 0 ? 4.8 : b.teacher.averageRating).compareTo(a.teacher.averageRating == 0 ? 4.8 : a.teacher.averageRating));
+    final freeCourses = courses.where((course) => course.price <= 0).toList();
+    final newReleases = courses.reversed.take(8).toList();
+    final teachers = _popularTeachers(courses);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
       children: [
-        const _CategoryRow(),
-        const SizedBox(height: 24),
-        _SectionTitle(title: featured.isEmpty ? 'Start learning Quran today' : 'Because you enrolled in Quran learning'),
-        const SizedBox(height: 12),
-        _HorizontalCourseList(courses: featured.isEmpty ? courses : featured),
-        const SizedBox(height: 28),
-        const _SectionTitle(title: 'Short and sweet courses for you'),
-        const SizedBox(height: 12),
-        _HorizontalCourseList(courses: shortCourses.isEmpty ? courses : shortCourses, compact: true),
+        const _HomeHeader(),
+        const SizedBox(height: AppSpacing.lg),
+        const _HomeSearchBar(),
+        const SizedBox(height: AppSpacing.md),
+        _CategoryRow(categories: categories, selected: category, onChanged: onCategoryChanged),
+        const SizedBox(height: AppSpacing.lg),
+        const SectionTitle('Continue Learning'),
+        const SizedBox(height: AppSpacing.md),
+        if (enrolledCourses.isEmpty)
+          _ContinueLearningPlaceholder(courses: recommended.isEmpty ? courses : recommended)
+        else
+          _ContinueLearningStrip(courses: enrolledCourses),
+        const SizedBox(height: AppSpacing.xl),
+        const SectionTitle('Recommended for you'),
+        const SizedBox(height: AppSpacing.md),
+        _HorizontalCourseList(courses: recommended.isEmpty ? courses : recommended),
+        const SizedBox(height: AppSpacing.xl),
+        const SectionTitle('Top rated courses'),
+        const SizedBox(height: AppSpacing.md),
+        _HorizontalCourseList(courses: topRated.take(8).toList(), badge: 'Highest Rated'),
+        const SizedBox(height: AppSpacing.xl),
+        const SectionTitle('Popular teachers'),
+        const SizedBox(height: AppSpacing.md),
+        _TeacherStrip(teachers: teachers),
+        const SizedBox(height: AppSpacing.xl),
+        const SectionTitle('Free courses'),
+        const SizedBox(height: AppSpacing.md),
+        _HorizontalCourseList(courses: freeCourses.isEmpty ? courses.take(4).toList() : freeCourses, badge: 'FREE'),
+        const SizedBox(height: AppSpacing.xl),
+        const SectionTitle('New releases'),
+        const SizedBox(height: AppSpacing.md),
+        _HorizontalCourseList(courses: newReleases.isEmpty ? courses : newReleases, badge: 'New'),
       ],
     );
   }
 }
 
-class _SearchTab extends StatelessWidget {
-  final List<CourseModel> courses;
-  final String search;
-  final ValueChanged<String> onChanged;
-
-  const _SearchTab({required this.courses, required this.search, required this.onChanged});
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader();
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AppState>().currentUser;
+
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Quran Learning', style: AppTextStyles.appBarTitle),
+              const SizedBox(height: 5),
+              Text('What do you want to learn today?', style: AppTextStyles.body),
+            ],
+          ),
+        ),
+        IconButton(
+          tooltip: 'Notifications',
+          onPressed: () {},
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.inputBackground,
+            foregroundColor: AppColors.textDark,
+            fixedSize: const Size(44, 44),
+          ),
+          icon: const Icon(Icons.notifications_none),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        CircleAvatar(
+          radius: 22,
+          backgroundColor: AppColors.greenSoft,
+          foregroundColor: AppColors.green,
+          child: Text((user?.fullName.isNotEmpty ?? false) ? user!.fullName[0].toUpperCase() : 'U'),
+        ),
+      ],
+    );
+  }
+}
+
+class _HomeSearchBar extends StatelessWidget {
+  const _HomeSearchBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Search for Quran, Tajweed, Hifz...',
+              prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        IconButton(
+          tooltip: 'Filter',
+          onPressed: () {},
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.green,
+            foregroundColor: Colors.white,
+            fixedSize: const Size(52, 52),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+          icon: const Icon(Icons.tune),
+        ),
+      ],
+    );
+  }
+}
+
+class _ContinueLearningStrip extends StatelessWidget {
+  const _ContinueLearningStrip({required this.courses});
+
+  final List<CourseModel> courses;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 178,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: courses.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 14),
+        itemBuilder: (_, index) => SizedBox(width: 310, child: _ContinueLearningCard(course: courses[index])),
+      ),
+    );
+  }
+}
+
+class _ContinueLearningPlaceholder extends StatelessWidget {
+  const _ContinueLearningPlaceholder({required this.courses});
+
+  final List<CourseModel> courses;
+
+  @override
+  Widget build(BuildContext context) {
+    if (courses.isEmpty) {
+      return const EmptyState(message: 'Your enrolled courses will appear here.', icon: Icons.play_circle_outline);
+    }
+    return _ContinueLearningStrip(courses: courses.take(2).toList());
+  }
+}
+
+class _ContinueLearningCard extends StatelessWidget {
+  const _ContinueLearningCard({required this.course});
+
+  final CourseModel course;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = course.lessons.isEmpty ? 0.32 : (1 / course.lessons.length).clamp(0.18, 0.82).toDouble();
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CourseDetailScreen(course: course))),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: _cardDecoration(),
+        child: Row(
+          children: [
+            Container(
+              width: 92,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: const LinearGradient(colors: [Color(0xFFE8F7EE), Color(0xFFCFF3DB)]),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: (course.coverImageUrl ?? '').isEmpty
+                  ? const Icon(Icons.menu_book_rounded, color: AppColors.green, size: 38)
+                  : Image.network(ApiService.mediaUrl(course.coverImageUrl!), fit: BoxFit.cover),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(course.courseName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w900, fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Text(course.teacher.fullName, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.small),
+                  const Spacer(),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      minHeight: 7,
+                      value: progress,
+                      backgroundColor: AppColors.inputBackground,
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.green),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  SizedBox(
+                    height: 38,
+                    child: FilledButton(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CourseDetailScreen(course: course))),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.green,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Continue', style: TextStyle(fontWeight: FontWeight.w900)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TeacherStrip extends StatelessWidget {
+  const _TeacherStrip({required this.teachers});
+
+  final List<_TeacherSummary> teachers;
+
+  @override
+  Widget build(BuildContext context) {
+    if (teachers.isEmpty) {
+      return const EmptyState(message: 'Popular teachers will appear here.', icon: Icons.school_outlined);
+    }
+
+    return SizedBox(
+      height: 132,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: teachers.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 14),
+        itemBuilder: (_, index) {
+          final teacher = teachers[index];
+          return Container(
+            width: 158,
+            padding: const EdgeInsets.all(14),
+            decoration: _cardDecoration(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppColors.greenSoft,
+                  foregroundColor: AppColors.green,
+                  child: Text(teacher.name.isNotEmpty ? teacher.name[0].toUpperCase() : 'T'),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(teacher.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
+                    Text(' ${teacher.rating.toStringAsFixed(1)}', style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w800, fontSize: 12)),
+                    Expanded(child: Text(' • ${teacher.students} students', overflow: TextOverflow.ellipsis, style: AppTextStyles.small)),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+List<_TeacherSummary> _popularTeachers(List<CourseModel> courses) {
+  final summaries = <String, _TeacherSummary>{};
+  for (final course in courses) {
+    final current = summaries[course.teacher.id];
+    final students = current?.students ?? 0;
+    summaries[course.teacher.id] = _TeacherSummary(
+      name: course.teacher.fullName,
+      rating: course.teacher.averageRating == 0 ? 4.8 : course.teacher.averageRating,
+      students: students + course.lessons.length + 1,
+    );
+  }
+  final list = summaries.values.toList()..sort((a, b) => b.rating.compareTo(a.rating));
+  return list.take(8).toList();
+}
+
+class _TeacherSummary {
+  const _TeacherSummary({required this.name, required this.rating, required this.students});
+
+  final String name;
+  final double rating;
+  final int students;
+}
+
+class _SearchTab extends StatelessWidget {
+  const _SearchTab({
+    required this.courses,
+    required this.search,
+    required this.category,
+    required this.categories,
+    required this.onSearchChanged,
+    required this.onCategoryChanged,
+  });
+
+  final List<CourseModel> courses;
+  final String search;
+  final String category;
+  final List<String> categories;
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<String> onCategoryChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final query = search.toLowerCase();
     final results = courses.where((course) {
-      final query = search.toLowerCase();
-      return course.courseName.toLowerCase().contains(query) ||
+      final matchesText = query.isEmpty ||
+          course.courseName.toLowerCase().contains(query) ||
           course.teacher.fullName.toLowerCase().contains(query) ||
           course.category.toLowerCase().contains(query);
+      final matchesCategory = category.isEmpty || course.category.toLowerCase().contains(category.toLowerCase());
+      return matchesText && matchesCategory;
     }).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       children: [
         TextField(
-          onChanged: onChanged,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
+          onChanged: onSearchChanged,
+          style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w600),
+          decoration: const InputDecoration(
             hintText: 'Search Quran, Tajweed, Hifz...',
-            hintStyle: const TextStyle(color: Colors.white54),
-            prefixIcon: const Icon(Icons.search, color: Colors.white70),
-            filled: true,
-            fillColor: const Color(0xFF171717),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
           ),
         ),
-        const SizedBox(height: 18),
-        _CourseGrid(courses: results),
+        const SizedBox(height: AppSpacing.md),
+        _CategoryRow(categories: categories, selected: category, onChanged: onCategoryChanged),
+        const SizedBox(height: AppSpacing.lg),
+        if (results.isEmpty)
+          const EmptyState(message: 'No courses match your search', icon: Icons.search_off)
+        else
+          _CourseGrid(courses: results),
       ],
     );
   }
 }
 
-class _CourseCollectionTab extends StatelessWidget {
-  final String title;
-  final String emptyMessage;
-  final List<CourseModel> courses;
+class _MyLearningTab extends StatelessWidget {
+  const _MyLearningTab({required this.courses});
 
-  const _CourseCollectionTab({required this.title, required this.emptyMessage, required this.courses});
+  final List<CourseModel> courses;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       children: [
-        _SectionTitle(title: title),
-        const SizedBox(height: 14),
+        const SectionTitle('My Learning'),
+        const SizedBox(height: AppSpacing.md),
         if (courses.isEmpty)
-          _EmptyPanel(message: emptyMessage)
+          const EmptyState(message: 'You have not enrolled in any course yet', icon: Icons.play_circle_outline)
         else
-          _CourseGrid(courses: courses),
+          ...courses.map((course) => _LearningCard(course: course)),
+      ],
+    );
+  }
+}
+
+class _LearningCard extends StatelessWidget {
+  const _LearningCard({required this.course});
+
+  final CourseModel course;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = course.lessons.isEmpty ? 0.35 : (1 / course.lessons.length).clamp(0.18, 0.85).toDouble();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(course.courseName, style: const TextStyle(color: AppColors.textDark, fontSize: 17, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 4),
+          Text(course.teacher.fullName, style: AppTextStyles.small),
+          const SizedBox(height: AppSpacing.md),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 8,
+              value: progress,
+              backgroundColor: AppColors.inputBackground,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.green),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          PrimaryButton(
+            label: 'Continue',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => CourseDetailScreen(course: course)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CourseCollectionTab extends StatelessWidget {
+  const _CourseCollectionTab({
+    required this.title,
+    required this.emptyMessage,
+    required this.icon,
+    required this.courses,
+  });
+
+  final String title;
+  final String emptyMessage;
+  final IconData icon;
+  final List<CourseModel> courses;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+      children: [
+        SectionTitle(title),
+        const SizedBox(height: AppSpacing.md),
+        if (courses.isEmpty) EmptyState(message: emptyMessage, icon: icon) else _CourseGrid(courses: courses),
       ],
     );
   }
@@ -309,48 +685,49 @@ class _SettingsTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       children: [
-        const _SectionTitle(title: 'Setting'),
-        const SizedBox(height: 16),
+        const SectionTitle('Setting'),
+        const SizedBox(height: AppSpacing.lg),
         Center(
           child: CircleAvatar(
-            radius: 44,
+            radius: 48,
+            backgroundColor: AppColors.greenSoft,
+            foregroundColor: AppColors.green,
             backgroundImage: (user?.profileImageUrl ?? '').isEmpty ? null : NetworkImage(ApiService.mediaUrl(user!.profileImageUrl!)),
-            child: (user?.profileImageUrl ?? '').isEmpty ? const Icon(Icons.person_outline, size: 38) : null,
+            child: (user?.profileImageUrl ?? '').isEmpty ? const Icon(Icons.person_outline, size: 42) : null,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Center(
-          child: Text(user?.fullName ?? 'Student', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+          child: Text(
+            user?.fullName ?? 'Student',
+            style: const TextStyle(color: AppColors.textDark, fontSize: 19, fontWeight: FontWeight.w900),
+          ),
         ),
-        Center(
-          child: Text(user?.role ?? 'student', style: const TextStyle(color: Colors.white60)),
-        ),
-        const SizedBox(height: 22),
-        _SettingsTile(
+        Center(child: Text(user?.role ?? 'student', style: AppTextStyles.body)),
+        const SizedBox(height: AppSpacing.xl),
+        SettingTile(
           icon: Icons.edit_outlined,
           title: 'Edit profile',
           subtitle: 'Change profile image and name',
           onTap: () => _showEditProfileDialog(context),
         ),
-        _SettingsTile(
+        SettingTile(
           icon: Icons.lock_outline,
           title: 'Change password',
           subtitle: 'Update your account password',
           onTap: () => _showChangePasswordDialog(context),
         ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          secondary: const CircleAvatar(
-            backgroundColor: Color(0xFF171717),
-            foregroundColor: Colors.white,
-            child: Icon(Icons.dark_mode_outlined),
+        SettingTile(
+          icon: Icons.dark_mode_outlined,
+          title: 'Dark mode',
+          subtitle: 'Change app appearance',
+          trailing: Switch(
+            value: app.darkMode,
+            activeThumbColor: AppColors.green,
+            onChanged: app.setDarkMode,
           ),
-          title: const Text('Dark mode', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-          subtitle: const Text('Change app appearance', style: TextStyle(color: Colors.white60)),
-          value: app.darkMode,
-          onChanged: app.setDarkMode,
         ),
-        _SettingsTile(
+        SettingTile(
           icon: Icons.logout,
           title: 'Logout',
           subtitle: 'Sign out from this account',
@@ -376,7 +753,7 @@ class _SettingsTab extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sm),
               OutlinedButton.icon(
                 onPressed: () async {
                   final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
@@ -426,6 +803,7 @@ class _SettingsTab extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(controller: current, obscureText: true, decoration: const InputDecoration(labelText: 'Current password')),
+            const SizedBox(height: AppSpacing.sm),
             TextField(controller: next, obscureText: true, decoration: const InputDecoration(labelText: 'New password')),
           ],
         ),
@@ -449,66 +827,58 @@ class _SettingsTab extends StatelessWidget {
 }
 
 class _CategoryRow extends StatelessWidget {
-  const _CategoryRow();
+  const _CategoryRow({
+    required this.categories,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final List<String> categories;
+  final String selected;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    const categories = ['Quran', 'Tajweed', 'Hifz', 'Arabic', 'Kids'];
     return SizedBox(
       height: 44,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
         separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (_, index) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.white70),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Text(categories[index], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        ),
+        itemBuilder: (_, index) {
+          final category = categories[index];
+          return CategoryChip(
+            label: category,
+            selected: selected == category,
+            onTap: () => onChanged(category),
+          );
+        },
       ),
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  final String title;
-
-  const _SectionTitle({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(color: Colors.white, fontSize: 28, height: 1.15, fontWeight: FontWeight.w900),
-    );
-  }
-}
-
 class _HorizontalCourseList extends StatelessWidget {
-  final List<CourseModel> courses;
-  final bool compact;
+  const _HorizontalCourseList({required this.courses, this.badge});
 
-  const _HorizontalCourseList({required this.courses, this.compact = false});
+  final List<CourseModel> courses;
+  final String? badge;
 
   @override
   Widget build(BuildContext context) {
     if (courses.isEmpty) {
-      return const _EmptyPanel(message: 'No courses found yet.');
+      return const EmptyState(message: 'No courses found yet.');
     }
 
     return SizedBox(
-      height: compact ? 240 : 305,
+      height: 312,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: courses.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 18),
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
         itemBuilder: (_, index) => SizedBox(
-          width: 230,
-          child: _CourseCard(course: courses[index], compact: compact),
+          width: 236,
+          child: CourseCard(course: courses[index], badge: badge),
         ),
       ),
     );
@@ -516,159 +886,43 @@ class _HorizontalCourseList extends StatelessWidget {
 }
 
 class _CourseGrid extends StatelessWidget {
-  final List<CourseModel> courses;
-
   const _CourseGrid({required this.courses});
 
+  final List<CourseModel> courses;
+
   @override
   Widget build(BuildContext context) {
-    if (courses.isEmpty) {
-      return const _EmptyPanel(message: 'No courses match this view.');
-    }
-
-    return GridView.builder(
-      itemCount: courses.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 18,
-        childAspectRatio: 0.58,
-      ),
-      itemBuilder: (_, index) => _CourseCard(course: courses[index]),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = constraints.maxWidth >= 720 ? 3 : 2;
+        return GridView.builder(
+          itemCount: courses.length,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 16,
+            childAspectRatio: 0.58,
+          ),
+          itemBuilder: (_, index) => CourseCard(course: courses[index]),
+        );
+      },
     );
   }
 }
 
-class _CourseCard extends StatelessWidget {
-  final CourseModel course;
-  final bool compact;
-
-  const _CourseCard({required this.course, this.compact = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final app = context.watch<AppState>();
-    final isTeacher = app.currentUser?.role == 'teacher';
-    final isFavorite = app.favoriteCourseIds.contains(course.id);
-    final rating = course.teacher.averageRating == 0 ? 4.8 : course.teacher.averageRating;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CourseDetailScreen(course: course))),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Stack(
-              children: [
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1B7F79), Color(0xFF232323)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: (course.coverImageUrl ?? '').isEmpty
-                      ? const Center(child: Icon(Icons.menu_book_rounded, color: Colors.white, size: 46))
-                      : Image.network(ApiService.mediaUrl(course.coverImageUrl!), fit: BoxFit.cover),
-                ),
-                if (!isTeacher)
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: IconButton.filledTonal(
-                      constraints: const BoxConstraints.tightFor(width: 38, height: 38),
-                      padding: EdgeInsets.zero,
-                      icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, size: 20),
-                      onPressed: () => app.toggleFavorite(course.id),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            course.courseName,
-            maxLines: compact ? 2 : 3,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontSize: 17, height: 1.15, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            course.teacher.fullName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Text(rating.toStringAsFixed(1), style: const TextStyle(color: Color(0xFFF2A900), fontWeight: FontWeight.w800)),
-              const SizedBox(width: 4),
-              const Icon(Icons.star, color: Color(0xFFF2A900), size: 16),
-              const SizedBox(width: 4),
-              Text('(${course.teacher.totalReviews})', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text('\$${course.price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
-          if (!compact && rating >= 4.7) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(color: const Color(0xFFEFC47F), borderRadius: BorderRadius.circular(4)),
-              child: const Text('Highest Rated', style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w900)),
-            ),
-          ],
-        ],
+BoxDecoration _cardDecoration() {
+  return BoxDecoration(
+    color: AppColors.surface,
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(color: AppColors.border),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.05),
+        blurRadius: 22,
+        offset: const Offset(0, 10),
       ),
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback? onTap;
-
-  const _SettingsTile({required this.icon, required this.title, required this.subtitle, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-      leading: CircleAvatar(
-        backgroundColor: const Color(0xFF171717),
-        foregroundColor: Colors.white,
-        child: Icon(icon),
-      ),
-      title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-      subtitle: Text(subtitle, style: const TextStyle(color: Colors.white60)),
-      trailing: onTap == null ? null : const Icon(Icons.chevron_right, color: Colors.white70),
-      onTap: onTap,
-    );
-  }
-}
-
-class _EmptyPanel extends StatelessWidget {
-  final String message;
-
-  const _EmptyPanel({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: const Color(0xFF171717), borderRadius: BorderRadius.circular(8)),
-      child: Text(message, style: const TextStyle(color: Colors.white70)),
-    );
-  }
+    ],
+  );
 }

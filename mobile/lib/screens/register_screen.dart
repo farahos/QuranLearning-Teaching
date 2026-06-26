@@ -101,7 +101,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: AppSpacing.md),
             _RegisterFooter(
               onTap: () {
-                Navigator.of(context).pushReplacement(
+                final navigator = Navigator.of(context);
+                if (navigator.canPop()) {
+                  navigator.pop();
+                  return;
+                }
+                navigator.pushReplacement(
                   MaterialPageRoute(builder: (_) => const LoginScreen()),
                 );
               },

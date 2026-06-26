@@ -7,6 +7,9 @@ import 'package:provider/provider.dart';
 import '../models/course_model.dart';
 import '../providers/app_state.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/primary_button.dart';
 
 class TeacherToolsScreen extends StatefulWidget {
   final bool embedded;
@@ -41,9 +44,10 @@ class _TeacherToolsScreenState extends State<TeacherToolsScreen> {
               children: [
                 CircleAvatar(
                   radius: 31,
-                  backgroundColor: const Color(0xFF1B5E20),
+                  backgroundColor: AppColors.greenSoft,
+                  foregroundColor: AppColors.green,
                   backgroundImage: (teacher?.profileImageUrl ?? '').isEmpty ? null : NetworkImage(ApiService.mediaUrl(teacher!.profileImageUrl!)),
-                  child: (teacher?.profileImageUrl ?? '').isEmpty ? const Icon(Icons.school_outlined, color: Colors.white, size: 30) : null,
+                  child: (teacher?.profileImageUrl ?? '').isEmpty ? const Icon(Icons.school_outlined, size: 30) : null,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -54,12 +58,12 @@ class _TeacherToolsScreenState extends State<TeacherToolsScreen> {
                         teacher?.fullName ?? 'Teacher',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
+                        style: const TextStyle(color: AppColors.textDark, fontSize: 22, fontWeight: FontWeight.w900),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${myCourses.length} courses published',
-                        style: const TextStyle(color: Colors.white60, fontWeight: FontWeight.w600),
+                        style: AppTextStyles.body,
                       ),
                     ],
                   ),
@@ -106,11 +110,12 @@ class _TeacherToolsScreenState extends State<TeacherToolsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF050505),
+      backgroundColor: AppColors.scaffold,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF050505),
-        foregroundColor: Colors.white,
-        title: const Text('Instructor'),
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: AppColors.surface,
+        foregroundColor: AppColors.textDark,
+        title: const Text('Instructor', style: AppTextStyles.appBarTitle),
         actions: [
           IconButton(
             tooltip: 'Create course',
@@ -132,7 +137,8 @@ class _TeacherToolsScreenState extends State<TeacherToolsScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF111111),
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => _CourseEditorSheet(course: course),
     );
   }
@@ -219,22 +225,22 @@ class _CourseEditorSheetState extends State<_CourseEditorSheet> {
               Expanded(
                 child: Text(
                   isEditing ? 'Edit course' : 'Create course',
-                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
+                  style: const TextStyle(color: AppColors.textDark, fontSize: 22, fontWeight: FontWeight.w900),
                 ),
               ),
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.white)),
+              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: AppColors.textDark)),
             ],
           ),
           const SizedBox(height: 12),
-          _DarkField(controller: name, label: 'Course name'),
+          _LightField(controller: name, label: 'Course name'),
           const SizedBox(height: 10),
-          _DarkField(controller: desc, label: 'Description', minLines: 3, maxLines: 5),
+          _LightField(controller: desc, label: 'Description', minLines: 3, maxLines: 5),
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: _DarkField(controller: price, label: 'Price', keyboardType: TextInputType.number)),
+              Expanded(child: _LightField(controller: price, label: 'Price', keyboardType: TextInputType.number)),
               const SizedBox(width: 10),
-              Expanded(child: _DarkField(controller: category, label: 'Category')),
+              Expanded(child: _LightField(controller: category, label: 'Category')),
             ],
           ),
           const SizedBox(height: 10),
@@ -250,7 +256,7 @@ class _CourseEditorSheetState extends State<_CourseEditorSheet> {
             }),
           ),
           const SizedBox(height: 10),
-          const Text('Lessons', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
+          const Text('Lessons', style: TextStyle(color: AppColors.textDark, fontSize: 16, fontWeight: FontWeight.w900)),
           const SizedBox(height: 8),
           ...lessons.asMap().entries.map((entry) {
             final index = entry.key;
@@ -394,20 +400,20 @@ class _ImageUploadBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1D1D1D),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: hasImage ? const Color(0xFF86D083) : Colors.white12),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: hasImage ? AppColors.green : AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700)),
+          Text(title, style: AppTextStyles.small),
           const SizedBox(height: 10),
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: hasImage ? const Color(0xFF1B5E20) : const Color(0xFF2A2A2A),
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.greenSoft,
+                foregroundColor: AppColors.green,
                 child: Icon(hasImage ? Icons.check : Icons.image_outlined),
               ),
               const SizedBox(width: 12),
@@ -419,12 +425,12 @@ class _ImageUploadBox extends StatelessWidget {
                       hasImage ? fileName! : 'Choose file',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                      style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       hasExistingImage ? 'Current uploaded image' : 'Upload JPG, PNG, or WEBP',
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      style: AppTextStyles.small,
                     ),
                   ],
                 ),
@@ -484,9 +490,9 @@ class _LessonEditorCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1D1D1D),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: hasVideo ? const Color(0xFF86D083) : Colors.white12),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: hasVideo ? AppColors.green : AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -494,23 +500,23 @@ class _LessonEditorCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text('Lesson ${index + 1}', style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700)),
+                child: Text('Lesson ${index + 1}', style: AppTextStyles.small),
               ),
               if (canRemove)
                 IconButton(
                   tooltip: 'Remove lesson',
                   onPressed: onRemove,
-                  icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+                  icon: const Icon(Icons.close, color: AppColors.textMuted, size: 18),
                 ),
             ],
           ),
-          _DarkField(controller: lesson.title, label: 'Lesson title'),
+          _LightField(controller: lesson.title, label: 'Lesson title'),
           const SizedBox(height: 10),
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: hasVideo ? const Color(0xFF1B5E20) : const Color(0xFF2A2A2A),
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.greenSoft,
+                foregroundColor: AppColors.green,
                 child: Icon(hasVideo ? Icons.check : Icons.video_call_outlined),
               ),
               const SizedBox(width: 12),
@@ -522,12 +528,12 @@ class _LessonEditorCard extends StatelessWidget {
                       hasVideo ? fileName! : 'Choose file',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                      style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       hasExistingVideo ? 'Current lesson video' : 'Upload a video for this lesson',
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      style: AppTextStyles.small,
                     ),
                   ],
                 ),
@@ -571,15 +577,15 @@ class _MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFF151515), borderRadius: BorderRadius.circular(8)),
+      decoration: _teacherCardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.white70, size: 20),
+          Icon(icon, color: AppColors.green, size: 20),
           const SizedBox(height: 12),
-          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textDark, fontSize: 20, fontWeight: FontWeight.w900)),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          Text(label, style: AppTextStyles.small),
         ],
       ),
     );
@@ -599,12 +605,12 @@ class _ActionPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFF151515), borderRadius: BorderRadius.circular(8)),
+      decoration: _teacherCardDecoration(),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: const Color(0xFF1B5E20),
-            foregroundColor: Colors.white,
+            backgroundColor: AppColors.greenSoft,
+            foregroundColor: AppColors.green,
             child: Icon(icon),
           ),
           const SizedBox(width: 14),
@@ -612,9 +618,9 @@ class _ActionPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                Text(title, style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                Text(subtitle, style: AppTextStyles.small),
               ],
             ),
           ),
@@ -633,7 +639,7 @@ class _TeacherSectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900));
+    return Text(title, style: AppTextStyles.sectionTitle);
   }
 }
 
@@ -649,7 +655,7 @@ class _InstructorCourseCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFF151515), borderRadius: BorderRadius.circular(8)),
+      decoration: _teacherCardDecoration(),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -658,11 +664,11 @@ class _InstructorCourseCard extends StatelessWidget {
             height: 58,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(6),
-              gradient: const LinearGradient(colors: [Color(0xFF1B7F79), Color(0xFF222222)]),
+              gradient: const LinearGradient(colors: [Color(0xFFE8F7EE), Color(0xFFCFF3DB)]),
             ),
             clipBehavior: Clip.antiAlias,
             child: (course.coverImageUrl ?? '').isEmpty
-                ? const Icon(Icons.menu_book_rounded, color: Colors.white)
+                ? const Icon(Icons.menu_book_rounded, color: AppColors.green)
                 : Image.network(ApiService.mediaUrl(course.coverImageUrl!), fit: BoxFit.cover),
           ),
           const SizedBox(width: 12),
@@ -670,25 +676,25 @@ class _InstructorCourseCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(course.courseName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                Text(course.courseName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 4),
-                Text(course.category, style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                Text(course.category, style: AppTextStyles.small),
                 const SizedBox(height: 7),
                 Row(
                   children: [
-                    Text('\$${course.price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                    Text('\$${course.price.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w800)),
                     const SizedBox(width: 10),
-                    const Icon(Icons.check_circle, color: Color(0xFF86D083), size: 15),
+                    const Icon(Icons.check_circle, color: AppColors.green, size: 15),
                     const SizedBox(width: 4),
-                    const Text('Published', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                    const Text('Published', style: AppTextStyles.small),
                   ],
                 ),
               ],
             ),
           ),
           PopupMenuButton<String>(
-            color: const Color(0xFF222222),
-            icon: const Icon(Icons.more_vert, color: Colors.white),
+            color: AppColors.surface,
+            icon: const Icon(Icons.more_vert, color: AppColors.textDark),
             onSelected: (value) {
               if (value == 'edit') onEdit();
               if (value == 'delete') onDelete();
@@ -713,30 +719,23 @@ class _EmptyInstructorState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: const Color(0xFF151515), borderRadius: BorderRadius.circular(8)),
-      child: Column(
-        children: [
-          const Icon(Icons.video_call_outlined, color: Colors.white70, size: 42),
-          const SizedBox(height: 10),
-          const Text('No courses yet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 6),
-          const Text('Start by publishing your first Quran course.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60)),
-          const SizedBox(height: 12),
-          FilledButton(onPressed: onCreate, child: const Text('Create course')),
-        ],
-      ),
+      child: Column(children: [
+        const EmptyState(message: 'Start by publishing your first Quran course.', icon: Icons.video_call_outlined),
+        const SizedBox(height: AppSpacing.md),
+        PrimaryButton(onPressed: onCreate, label: 'Create course'),
+      ]),
     );
   }
 }
 
-class _DarkField extends StatelessWidget {
+class _LightField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final int minLines;
   final int maxLines;
   final TextInputType? keyboardType;
 
-  const _DarkField({required this.controller, required this.label, this.minLines = 1, this.maxLines = 1, this.keyboardType});
+  const _LightField({required this.controller, required this.label, this.minLines = 1, this.maxLines = 1, this.keyboardType});
 
   @override
   Widget build(BuildContext context) {
@@ -745,20 +744,23 @@ class _DarkField extends StatelessWidget {
       minLines: minLines,
       maxLines: maxLines,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white),
-      decoration: _darkInputDecoration(label),
+      style: const TextStyle(color: AppColors.textDark),
+      decoration: InputDecoration(labelText: label),
     );
   }
 }
 
-InputDecoration _darkInputDecoration(String label) {
-  return InputDecoration(
-    labelText: label,
-    labelStyle: const TextStyle(color: Colors.white70),
-    filled: true,
-    fillColor: const Color(0xFF1D1D1D),
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF86D083))),
+BoxDecoration _teacherCardDecoration() {
+  return BoxDecoration(
+    color: AppColors.surface,
+    borderRadius: BorderRadius.circular(20),
+    border: Border.all(color: AppColors.border),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.05),
+        blurRadius: 22,
+        offset: const Offset(0, 10),
+      ),
+    ],
   );
 }

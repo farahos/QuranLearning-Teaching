@@ -9,6 +9,10 @@ class AppState extends ChangeNotifier {
   UserModel? currentUser;
   List<CourseModel> courses = [];
   List<Map<String, dynamic>> teacherStudentCourses = [];
+  Map<String, dynamic>? adminDashboard;
+  List<Map<String, dynamic>> adminUsers = [];
+  List<CourseModel> adminCourses = [];
+  List<Map<String, dynamic>> adminTransactions = [];
   final Set<String> favoriteCourseIds = {};
   final Set<String> learningCourseIds = {};
   String? error;
@@ -47,12 +51,63 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> fetchAdminDashboard() async {
+    adminDashboard = await _api.get('/admin/dashboard', token: token) as Map<String, dynamic>;
+    notifyListeners();
+  }
+
+  Future<void> fetchAdminUsers() async {
+    final data = await _api.get('/admin/users', token: token);
+    adminUsers = (data as List).map((e) => e as Map<String, dynamic>).toList();
+    notifyListeners();
+  }
+
+  Future<void> fetchAdminCourses() async {
+    final data = await _api.get('/admin/courses', token: token);
+    adminCourses = (data as List).map((e) => CourseModel.fromJson(e)).toList();
+    notifyListeners();
+  }
+
+  Future<void> fetchAdminTransactions() async {
+    final data = await _api.get('/admin/transactions', token: token);
+    adminTransactions = (data as List).map((e) => e as Map<String, dynamic>).toList();
+    notifyListeners();
+  }
+
+  Future<void> refreshAdmin() async {
+    await Future.wait([
+      fetchAdminDashboard(),
+      fetchAdminUsers(),
+      fetchAdminCourses(),
+      fetchAdminTransactions(),
+    ]);
+  }
+
+  Future<void> updateAdminUser(String id, Map<String, dynamic> updates) async {
+    final data = await _api.put('/admin/users/$id', updates, token: token);
+    final updated = data as Map<String, dynamic>;
+    adminUsers = adminUsers.map((user) => user['_id'] == id ? updated : user).toList();
+    notifyListeners();
+  }
+
+  Future<void> deleteAdminUser(String id) async {
+    await _api.delete('/admin/users/$id', token: token);
+    adminUsers = adminUsers.where((user) => user['_id'] != id).toList();
+    notifyListeners();
+  }
+
+  Future<void> deleteAdminCourse(String id) async {
+    await _api.delete('/admin/courses/$id', token: token);
+    adminCourses = adminCourses.where((course) => course.id != id).toList();
+    notifyListeners();
+  }
+
   Future<Map<String, dynamic>> buyCourse(String courseId, String paymentMethod, String phoneNumber) async {
     final data = await _api.post('/wallet/pay-course', {
       'courseId': courseId,
       'paymentMethod': paymentMethod,
       'phoneNumber': phoneNumber,
-    }, token: token) as Map<String, dynamic>;
+    }, token: token);
     learningCourseIds.add(courseId);
     notifyListeners();
     return data;
@@ -152,6 +207,10 @@ class AppState extends ChangeNotifier {
     currentUser = null;
     courses = [];
     teacherStudentCourses = [];
+    adminDashboard = null;
+    adminUsers = [];
+    adminCourses = [];
+    adminTransactions = [];
     favoriteCourseIds.clear();
     learningCourseIds.clear();
     notifyListeners();
