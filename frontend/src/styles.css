@@ -11,11 +11,12 @@
     box-sizing: border-box;
   }
 
+  html {
+    @apply scroll-smooth;
+  }
+
   body {
-    @apply m-0 min-w-80 bg-quran-bg font-sans text-quran-text;
-    background-image:
-      linear-gradient(135deg, rgba(22, 116, 71, 0.08), transparent 32%),
-      linear-gradient(225deg, rgba(184, 137, 34, 0.12), transparent 30%);
+    @apply m-0 min-w-[320px] bg-quran-bg font-sans text-quran-text antialiased;
   }
 
   button,
@@ -32,463 +33,155 @@
   button:disabled {
     @apply cursor-not-allowed opacity-55;
   }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-quran-bright ring-offset-2 ring-offset-quran-bg;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
 }
 
 @layer components {
-  .app-shell {
-    @apply grid min-h-screen grid-cols-[280px_minmax(0,1fr)] max-[980px]:grid-cols-1;
+  /* Buttons */
+  .btn {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg border px-3.5 py-2.5 text-sm font-bold transition-colors disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn border-quran-green bg-gradient-to-br from-quran-green to-quran-bright text-white shadow-sm hover:brightness-105;
+  }
+  .btn-secondary {
+    @apply btn border-quran-line bg-white text-quran-text hover:border-quran-green hover:text-quran-green;
+  }
+  .btn-ghost {
+    @apply btn border-transparent bg-transparent text-quran-muted hover:bg-quran-soft hover:text-quran-text;
+  }
+  .btn-danger {
+    @apply btn border-quran-red/30 bg-white text-quran-red hover:bg-quran-red/5;
+  }
+  .btn-icon {
+    @apply w-10 p-0;
+  }
+  .btn-sm {
+    @apply min-h-8 px-2.5 py-1.5 text-xs;
   }
 
-  .sidebar {
-    @apply sticky top-0 flex h-screen flex-col gap-5 border-r border-quran-line bg-white/90 p-[22px] backdrop-blur-lg max-[980px]:static max-[980px]:h-auto max-[640px]:p-4;
+  /* Form controls */
+  .input {
+    @apply w-full rounded-lg border border-quran-line bg-white px-3 py-2.5 text-sm text-quran-text placeholder:text-quran-muted/70 outline-none transition-colors focus:border-quran-green focus:shadow-[0_0_0_3px_rgba(22,116,71,0.12)];
+  }
+  .input-error {
+    @apply border-quran-red focus:border-quran-red focus:shadow-[0_0_0_3px_rgba(194,65,53,0.12)];
+  }
+  .textarea {
+    @apply input min-h-[110px] resize-y;
+  }
+  .select {
+    @apply input pr-8;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-bold text-quran-text;
+  }
+  .required-star {
+    @apply ml-0.5 text-quran-red;
+  }
+  .field-error {
+    @apply mt-1.5 text-xs font-semibold text-quran-red;
+  }
+  .field-hint {
+    @apply mt-1.5 text-xs text-quran-muted;
   }
 
-  .brand,
-  .topbar,
-  .section-header,
-  .modal-header,
-  .summary-line,
-  .course-meta,
-  .card-actions,
-  .modal-footer,
-  .toolbar,
-  .payment-row,
-  .report-row,
-  .material-row,
-  .user-row,
-  .row-item,
-  .top-actions {
-    @apply flex items-center;
-  }
-
-  .brand {
-    @apply gap-3;
-  }
-
-  .brand-mark,
-  .avatar {
-    @apply grid h-[42px] w-[42px] place-items-center rounded-lg bg-gradient-to-br from-quran-green to-quran-blue font-black text-white;
-  }
-
-  .brand strong,
-  .brand span,
-  .row-item strong,
-  .row-item span,
-  .user-row strong,
-  .user-row span,
-  .payment-row strong,
-  .payment-row span,
-  .report-row strong,
-  .report-row span,
-  .material-row strong,
-  .material-row span {
-    @apply block;
-  }
-
-  .brand span,
-  .eyebrow,
-  .field span,
-  .row-item span,
-  .user-row span,
-  .payment-row span,
-  .report-row span,
-  .metric span,
-  .course-body p,
-  .course-meta span,
-  .material-row span {
-    @apply text-[0.86rem] text-quran-muted;
-  }
-
-  .role-tabs,
-  .segmented {
-    @apply grid grid-cols-3 gap-1 rounded-lg bg-quran-soft p-1;
-  }
-
-  .segmented {
-    @apply mb-4;
-  }
-
-  .role-tabs button,
-  .segmented button {
-    @apply rounded-md border-0 bg-transparent px-2 py-[9px] font-extrabold text-quran-muted;
-  }
-
-  .role-tabs button.active,
-  .segmented button.active {
-    @apply bg-white text-quran-text shadow-[0_7px_20px_rgba(20,47,31,0.08)];
-  }
-
-  nav {
-    @apply grid gap-2 max-[980px]:grid-cols-2 max-[640px]:grid-cols-1;
-  }
-
-  nav button,
-  .logout {
-    @apply flex min-h-[42px] w-full items-center gap-2.5 rounded-lg border border-transparent bg-transparent px-3 py-2.5 text-left font-extrabold text-quran-muted;
-  }
-
-  nav button.active,
-  nav button:hover,
-  .logout:hover {
-    @apply border-[#cfe7d8] bg-[#eff8f2] text-quran-green;
-  }
-
-  .logout {
-    @apply mt-auto;
-  }
-
-  .main {
-    @apply min-w-0 px-[clamp(16px,3vw,34px)] pb-11 pt-[22px] max-[640px]:p-4;
-  }
-
-  .topbar,
-  .section-header {
-    @apply justify-between gap-4 max-[640px]:items-stretch max-[640px]:flex-col;
-  }
-
-  .topbar {
-    @apply mb-[22px];
-  }
-
-  .topbar h1,
-  .section h2,
-  .modal h2 {
-    @apply m-0 text-[clamp(1.45rem,3vw,2.35rem)] leading-[1.05];
-  }
-
-  .eyebrow {
-    @apply mb-[5px] mt-0 font-black uppercase tracking-normal;
-  }
-
-  .top-actions {
-    @apply gap-2.5 max-[640px]:w-full;
-  }
-
-  .primary-button,
-  .secondary-button,
-  .icon-button,
-  .card-actions button,
-  .row-item button,
-  .user-row button,
-  .payment-row button,
-  .report-row button,
-  .modal-footer button,
-  .filter-bar button {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-quran-line bg-white px-[13px] py-[9px] font-extrabold text-quran-text;
-  }
-
-  .primary-button {
-    @apply border-quran-green bg-gradient-to-br from-quran-green to-quran-bright text-white;
-  }
-
-  .secondary-button {
-    @apply border-quran-line bg-white text-quran-green;
-  }
-
-  .primary-button.full {
-    @apply w-full;
-  }
-
-  .icon-button {
-    @apply w-[42px] p-0;
-  }
-
-  .section {
-    @apply grid gap-[18px];
-  }
-
-  .metric-grid {
-    @apply grid grid-cols-4 gap-3.5 max-[980px]:grid-cols-2 max-[640px]:grid-cols-1;
-  }
-
-  .metric,
-  .card,
-  .course-card,
-  .list-card {
-    @apply rounded-lg border border-quran-line bg-white/90 shadow-quran;
-  }
-
-  .metric {
-    @apply grid min-h-[136px] content-between p-[18px];
-  }
-
-  .metric svg {
-    @apply text-quran-green;
-  }
-
-  .metric strong {
-    @apply mt-[18px] text-[1.8rem];
-  }
-
-  .two-column {
-    @apply grid grid-cols-2 gap-4 max-[980px]:grid-cols-2 max-[640px]:grid-cols-1;
-  }
-
+  /* Surfaces */
   .card {
-    @apply p-[18px];
+    @apply rounded-xl border border-quran-line bg-white shadow-card;
+  }
+  .card-pad {
+    @apply card p-5;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold;
+  }
+  .badge-green {
+    @apply badge bg-emerald-50 text-quran-green;
+  }
+  .badge-amber {
+    @apply badge bg-amber-50 text-quran-amber;
+  }
+  .badge-red {
+    @apply badge bg-red-50 text-quran-red;
+  }
+  .badge-gray {
+    @apply badge bg-gray-100 text-quran-muted;
+  }
+  .badge-blue {
+    @apply badge bg-sky-50 text-quran-blue;
   }
 
-  .card h3 {
-    @apply mb-[15px] mt-0 text-[1.05rem];
+  /* Layout */
+  .app-shell {
+    @apply min-h-screen bg-quran-bg;
+  }
+
+  .sidebar-scroll {
+    @apply overflow-y-auto;
+    scrollbar-width: thin;
+  }
+
+  .nav-link {
+    @apply flex min-h-10 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold text-emerald-100/80 transition-colors hover:bg-white/10 hover:text-white;
+  }
+  .nav-link.active {
+    @apply bg-white/15 text-white shadow-sm;
+  }
+
+  .content-container {
+    @apply mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8;
+  }
+
+  .page-title {
+    @apply text-xl font-black leading-tight text-quran-text sm:text-2xl;
+  }
+  .page-subtitle {
+    @apply mt-1 text-sm text-quran-muted;
+  }
+
+  .stat-grid {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .two-col {
+    @apply grid grid-cols-1 gap-4 lg:grid-cols-2;
   }
 
   .course-grid {
-    @apply grid grid-cols-[repeat(auto-fill,minmax(285px,1fr))] gap-4 max-[640px]:grid-cols-1;
+    @apply grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3;
   }
 
-  .course-card {
-    @apply grid grid-rows-[160px_1fr] overflow-hidden;
-  }
-
-  .course-media {
-    @apply relative grid place-items-center bg-gradient-to-br from-[#e9f6ee] to-[#f7efd9] text-quran-green;
-  }
-
-  .course-media img {
-    @apply h-full w-full object-cover;
-  }
-
-  .course-media span {
-    @apply absolute right-3 top-3 rounded-md bg-quran-text/80 px-[9px] py-1.5 text-[0.78rem] font-black text-white;
-  }
-
-  .course-body {
-    @apply grid gap-3.5 p-4;
-  }
-
-  .course-body h3 {
-    @apply mb-1.5 mt-0 text-[1.08rem];
-  }
-
-  .course-body p {
-    @apply m-0 leading-[1.45];
-  }
-
-  .course-meta {
-    @apply flex-wrap gap-3;
-  }
-
-  .course-meta span,
-  .card-actions button {
-    @apply inline-flex items-center gap-[5px];
-  }
-
-  .card-actions {
-    @apply gap-2 max-[640px]:w-full;
-  }
-
-  .list-card {
-    @apply p-2;
-  }
-
-  .row-item,
-  .user-row,
-  .payment-row,
-  .report-row,
-  .material-row {
-    @apply gap-3 border-b border-quran-line p-3 last:border-b-0 max-[640px]:items-stretch;
-  }
-
-  .user-row,
-  .payment-row,
-  .report-row,
-  .material-row {
-    @apply max-[640px]:flex-col;
-  }
-
-  .row-item > div,
-  .user-row > div:nth-child(2),
-  .payment-row > div,
-  .report-row > div,
-  .material-row > div {
-    @apply min-w-0 flex-1;
-  }
-
-  .row-item button {
-    @apply whitespace-nowrap;
-  }
-
-  .field {
-    @apply mb-3 grid gap-[7px];
-  }
-
-  .field input,
-  .field select,
-  .field textarea,
-  .search-box input,
-  .user-row select {
-    @apply w-full rounded-lg border border-quran-line bg-white px-3 py-[11px] text-quran-text outline-none focus:border-quran-green focus:shadow-[0_0_0_3px_rgba(22,116,71,0.12)];
-  }
-
-  .field textarea {
-    @apply min-h-28 resize-y;
-  }
-
-  .filter-bar {
-    @apply grid grid-cols-4 gap-3 max-[980px]:grid-cols-2 max-[640px]:grid-cols-1;
-  }
-
-  .search-box {
-    @apply flex flex-1 items-center gap-2 rounded-lg border border-quran-line bg-white px-2.5 max-[640px]:w-full;
-  }
-
-  .search-box input {
-    @apply border-0 shadow-none focus:shadow-none;
-  }
-
-  .summary-line {
-    @apply justify-between gap-3 rounded-lg bg-quran-soft p-3;
-  }
-
-  .control-stack {
-    @apply grid gap-2.5;
-  }
-
-  .toggle {
-    @apply inline-flex min-h-10 items-center gap-2.5 rounded-lg border border-quran-line bg-white px-3 py-2 font-extrabold text-quran-muted;
-  }
-
-  .toggle span {
-    @apply relative h-5 w-[34px] rounded-full bg-[#cbd5ce];
-  }
-
-  .toggle span::after {
-    @apply absolute left-[3px] top-[3px] h-3.5 w-3.5 rounded-full bg-white transition-transform content-[""];
-  }
-
-  .toggle.on {
-    @apply border-[#b8dfc4] bg-[#eef8f1] text-quran-green;
-  }
-
-  .toggle.on span {
-    @apply bg-quran-green;
-  }
-
-  .toggle.on span::after {
-    @apply translate-x-3.5;
+  .toast-viewport {
+    @apply fixed bottom-4 right-4 z-[100] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2;
   }
 
   .progress-line {
-    @apply mb-3 h-[11px] overflow-hidden rounded-full bg-quran-soft;
+    @apply h-2.5 overflow-hidden rounded-full bg-quran-soft;
   }
-
   .progress-line span {
-    @apply block h-full rounded-[inherit] bg-gradient-to-r from-quran-green to-quran-gold;
-  }
-
-  .avatar.large {
-    @apply h-[78px] w-[78px] text-[1.45rem];
-  }
-
-  .profile-grid {
-    @apply grid grid-cols-[90px_repeat(3,minmax(0,1fr))] items-end gap-3.5 max-[980px]:grid-cols-2 max-[640px]:grid-cols-1;
-  }
-
-  .auth-grid {
-    @apply grid grid-cols-2 gap-3 max-[640px]:grid-cols-1;
-  }
-
-  .auth-card {
-    @apply grid w-[min(520px,100%)] gap-3 rounded-lg border border-quran-line bg-white/90 p-5 shadow-quran;
-  }
-
-  .auth-card.wide {
-    @apply w-[min(880px,100%)];
-  }
-
-  .auth-card h3 {
-    @apply mb-2 mt-0 text-2xl;
-  }
-
-  .auth-card p {
-    @apply m-0 text-sm leading-relaxed text-quran-muted;
-  }
-
-  .auth-link {
-    @apply border-0 bg-transparent py-2 font-extrabold text-quran-green;
-  }
-
-  .role-picker {
-    @apply mb-4 grid grid-cols-3 gap-2 max-[640px]:grid-cols-1;
-  }
-
-  .role-picker button {
-    @apply grid gap-1 rounded-lg border border-quran-line bg-white p-3 text-left text-quran-muted;
-  }
-
-  .role-picker button.active {
-    @apply border-quran-green bg-[#eef8f1] text-quran-green;
-  }
-
-  .role-picker strong {
-    @apply text-quran-text;
-  }
-
-  .role-picker span {
-    @apply text-[0.78rem] leading-snug text-quran-muted;
-  }
-
-  .check-row {
-    @apply mb-3 flex items-start gap-2 rounded-lg bg-quran-soft p-3 text-sm font-bold text-quran-muted;
-  }
-
-  .check-row input {
-    @apply mt-1 h-4 w-4 accent-quran-green;
-  }
-
-  .form-note {
-    @apply rounded-lg border border-[#cfe7d8] bg-[#eff8f2] p-3 text-sm font-bold text-quran-green;
-  }
-
-  .modal-backdrop {
-    @apply fixed inset-0 z-20 grid place-items-center bg-[rgba(14,21,17,0.42)] p-[18px];
-  }
-
-  .modal {
-    @apply max-h-[calc(100vh-36px)] w-[min(500px,100%)] overflow-auto rounded-lg bg-white p-5 shadow-modal;
-  }
-
-  .modal.wide {
-    @apply w-[min(900px,100%)];
-  }
-
-  .modal-header,
-  .modal-footer {
-    @apply mb-4 justify-between gap-3;
-  }
-
-  .modal-footer {
-    @apply mb-0 mt-4;
-  }
-
-  .error-text {
-    @apply font-extrabold text-quran-red;
-  }
-
-  .toast {
-    @apply fixed bottom-[18px] right-[18px] z-30 flex items-center gap-[9px] rounded-lg bg-quran-green px-3.5 py-3 font-extrabold text-white;
-    animation: toast 3.2s ease forwards;
-  }
-
-  .top-actions .primary-button,
-  .toolbar .primary-button,
-  .card-actions button {
-    @apply max-[640px]:flex-1;
+    @apply block h-full rounded-[inherit] bg-gradient-to-r from-quran-green to-quran-gold transition-[width];
   }
 }
 
-@keyframes toast {
-  0% {
+@keyframes toast-in {
+  from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
-  12%,
-  82% {
+  to {
     opacity: 1;
     transform: translateY(0);
   }
-  100% {
-    opacity: 0;
-    transform: translateY(12px);
-  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.18s ease-out;
 }
