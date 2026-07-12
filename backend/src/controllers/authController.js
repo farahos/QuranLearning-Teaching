@@ -8,19 +8,66 @@ function signToken(user) {
   });
 }
 
+function sanitizeUser(user) {
+  const obj = user.toObject ? user.toObject() : { ...user };
+  delete obj.passwordHash;
+  return obj;
+}
+
 async function register(req, res) {
-  const { fullName, email, password, role } = req.body;
-  if (!["student", "teacher"].includes(role)) {
-    return res.status(400).json({ message: "Only student and teacher registration is available from the app" });
+  const {
+    fullName,
+    email,
+    password,
+    role,
+    whatsappNumber,
+    profileImageUrl,
+    telegramChannelLink,
+    bio,
+    experience,
+    introVideoUrl,
+    kycDocumentUrl,
+    learningGoal,
+    guardianPhone,
+    adminInviteCode,
+  } = req.body;
+
+  if (!["student", "teacher", "admin"].includes(role)) {
+    return res.status(400).json({ message: "Invalid role" });
   }
+
+  if (role === "admin") {
+    const expectedInvite = process.env.ADMIN_INVITE_CODE || "QLT-ADMIN-2026";
+    if (adminInviteCode !== expectedInvite) {
+      return res.status(403).json({ message: "Invalid admin invite code" });
+    }
+  }
+
   const existing = await User.findOne({ email: email.toLowerCase() });
   if (existing) {
     return res.status(409).json({ message: "Email already exists" });
   }
+
   const passwordHash = await bcrypt.hash(password, 10);
-  const user = await User.create({ fullName, email, passwordHash, role });
+  const user = await User.create({
+    fullName,
+    email,
+    passwordHash,
+    role,
+    whatsappNumber,
+    profileImageUrl,
+    telegramChannelLink,
+    bio,
+    experience,
+    introVideoUrl,
+    kycDocumentUrl,
+    learningGoal,
+    guardianPhone,
+    active: role !== "teacher",
+    kycStatus: role === "teacher" ? "pending" : "not_submitted",
+  });
   const token = signToken(user);
-  return res.status(201).json({ token, user });
+  return res.status(201).json({ token, user: sanitizeUser(user) });
 }
 
 async function login(req, res) {
@@ -33,8 +80,11 @@ async function login(req, res) {
   if (!valid) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
+  if (user.active === false) {
+    return res.status(403).json({ message: "Your account is not active yet" });
+  }
   const token = signToken(user);
-  return res.json({ token, user });
+  return res.json({ token, user: sanitizeUser(user) });
 }
 
 module.exports = { register, login };

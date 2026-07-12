@@ -54,7 +54,7 @@ async function listUsers(req, res) {
 }
 
 async function updateUser(req, res) {
-  const allowed = ["role", "kycStatus", "fullName", "walletBalance"];
+  const allowed = ["role", "kycStatus", "fullName", "walletBalance", "active"];
   const updates = {};
   for (const key of allowed) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
