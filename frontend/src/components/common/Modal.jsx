@@ -17,7 +17,6 @@ export function Modal({ open, onClose, title, description, children, footer, siz
       if (event.key === "Escape") onClose?.();
     }
     document.addEventListener("keydown", handleKeyDown);
-    dialogRef.current?.focus();
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -25,6 +24,13 @@ export function Modal({ open, onClose, title, description, children, footer, siz
       document.body.style.overflow = previousOverflow;
     };
   }, [open, onClose]);
+
+  // Only steal focus once, when the dialog first opens — not on every parent
+  // re-render (e.g. while typing in a field), which would yank focus away
+  // from whatever the user is editing.
+  useEffect(() => {
+    if (open) dialogRef.current?.focus();
+  }, [open]);
 
   if (!open) return null;
 

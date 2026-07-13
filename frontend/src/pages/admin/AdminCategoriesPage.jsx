@@ -12,10 +12,10 @@ import { SearchInput } from "../../components/common/SearchInput";
 import { Textarea } from "../../components/common/Textarea";
 import { useToast } from "../../components/common/Toast";
 import { addCategory, updateCategory, removeCategory, toggleCategoryActive, clearCategoryMessage } from "../../features/categories/categorySlice";
-import { formatCurrency, formatNumber } from "../../utils/formatters";
+import { formatNumber } from "../../utils/formatters";
 import { runValidation, validators } from "../../utils/validators";
 
-const emptyForm = { name: "", description: "", price: "0", isFree: true, thumbnailUrl: "", active: true };
+const emptyForm = { name: "", description: "", thumbnailUrl: "", active: true };
 
 export function AdminCategoriesPage() {
   const dispatch = useDispatch();
@@ -55,8 +55,6 @@ export function AdminCategoriesPage() {
     setForm({
       name: category.name,
       description: category.description || "",
-      price: String(category.price ?? 0),
-      isFree: !!category.isFree,
       thumbnailUrl: category.thumbnailUrl || "",
       active: category.active,
     });
@@ -73,8 +71,6 @@ export function AdminCategoriesPage() {
     const payload = {
       name: form.name.trim(),
       description: form.description.trim(),
-      price: form.isFree ? 0 : Number(form.price) || 0,
-      isFree: form.isFree,
       thumbnailUrl: form.thumbnailUrl.trim(),
       active: form.active,
     };
@@ -97,7 +93,6 @@ export function AdminCategoriesPage() {
         </div>
       ),
     },
-    { key: "price", header: "Price", render: (row) => (row.isFree ? "Free" : formatCurrency(row.price)) },
     { key: "courseCount", header: "Courses", render: (row) => formatNumber(row.courseCount || 0) },
     { key: "active", header: "Status", render: (row) => <Badge tone={row.active ? "green" : "gray"}>{row.active ? "Active" : "Inactive"}</Badge> },
     {
@@ -161,13 +156,6 @@ export function AdminCategoriesPage() {
         <div className="space-y-4">
           <FormField label="Name" required name="name" value={form.name} error={errors.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
           <Textarea label="Description" name="description" rows={3} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
-          <label className="flex items-center gap-2 text-sm font-semibold text-quran-text">
-            <input type="checkbox" checked={form.isFree} onChange={(e) => setForm((f) => ({ ...f, isFree: e.target.checked }))} className="h-4 w-4 rounded border-quran-line accent-quran-green" />
-            This category is free
-          </label>
-          {!form.isFree && (
-            <FormField label="Price" type="number" min="0" name="price" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} />
-          )}
           <FormField label="Thumbnail URL" name="thumbnailUrl" value={form.thumbnailUrl} onChange={(e) => setForm((f) => ({ ...f, thumbnailUrl: e.target.value }))} />
           <label className="flex items-center gap-2 text-sm font-semibold text-quran-text">
             <input type="checkbox" checked={form.active} onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))} className="h-4 w-4 rounded border-quran-line accent-quran-green" />

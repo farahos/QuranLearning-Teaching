@@ -6,6 +6,7 @@ import { Select } from "../common/Select";
 import { Button } from "../common/Button";
 import { COURSE_LANGUAGES, COURSE_LEVELS, COURSE_STATUS, COURSE_STATUS_LABELS } from "../../utils/constants";
 import { runValidation, validators } from "../../utils/validators";
+import { uploadApi } from "../../api/uploadApi";
 
 const STATUS_OPTIONS = Object.entries(COURSE_STATUS_LABELS).map(([value, label]) => ({ value, label }));
 const LEVEL_OPTIONS = COURSE_LEVELS.map((level) => ({ value: level, label: level }));
@@ -27,15 +28,13 @@ export function CourseForm({ course, categories = [], onSubmit, onCancel, loadin
     shortDescription: course?.shortDescription || "",
     description: course?.description || "",
     category: course?.category || categories[0]?.name || "",
-    coverImageUrl: course?.coverImageUrl || "",
     introVideoUrl: course?.introVideoUrl || "",
     language: course?.language || "Arabic",
     level: course?.level || "Beginner",
     duration: course?.duration || "",
     learningOutcomes: toLines(course?.learningOutcomes),
     requirements: toLines(course?.requirements),
-    paymentType: course?.price > 0 ? "paid" : "free",
-    price: course?.price ?? 0,
+    price: course?.price ? String(course.price) : "",
     status: course?.status || COURSE_STATUS.DRAFT,
     certificateEnabled: course?.certificateEnabled ?? true,
     downloadableMaterials: course?.downloadableMaterials ?? true,
@@ -45,40 +44,56 @@ export function CourseForm({ course, categories = [], onSubmit, onCancel, loadin
     memorizationTarget: course?.memorizationTarget || "",
   });
   const [errors, setErrors] = useState({});
+  const [uploadingIntro, setUploadingIntro] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function handleSubmit(event) {
+  async function handleIntroUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadingIntro(true);
+    try {
+      const result = await uploadApi.uploadVideo(file);
+      set("introVideoUrl", result.videoUrl || "");
+    } catch (error) {
+      setErrors((prev) => ({ ...prev, introVideoUrl: error.message || "Could not upload video" }));
+    } finally {
+      setUploadingIntro(false);
+      event.target.value = "";
+    }
+  }
+
+  async function handleSubmit(event) {
     event.preventDefault();
+    if (submitting || loading) return;
     const rules = {
       courseName: [validators.required("Course title is required")],
       description: [validators.required("Full description is required")],
       category: [validators.required("Choose a category")],
-      coverImageUrl: [validators.url()],
       introVideoUrl: [validators.url()],
+      price: [(value) => (Number(value || 0) >= 0 ? null : "Enter a valid price")],
     };
-    if (form.paymentType === "paid") {
-      rules.price = [(value) => (Number(value) > 0 ? null : "Enter a price greater than 0")];
-    }
     const validationErrors = runValidation(form, rules);
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length) return;
 
-    onSubmit({
+    setSubmitting(true);
+    try {
+      await onSubmit({
       courseName: form.courseName,
       shortDescription: form.shortDescription,
       description: form.description,
       category: form.category,
-      coverImageUrl: form.coverImageUrl,
       introVideoUrl: form.introVideoUrl,
       language: form.language,
       level: form.level,
       duration: form.duration,
       learningOutcomes: fromLines(form.learningOutcomes),
       requirements: fromLines(form.requirements),
-      price: form.paymentType === "free" ? 0 : Number(form.price),
+      price: Number(form.price) || 0,
       status: form.status,
       certificateEnabled: form.certificateEnabled,
       downloadableMaterials: form.downloadableMaterials,
@@ -86,7 +101,10 @@ export function CourseForm({ course, categories = [], onSubmit, onCancel, loadin
       juz: form.juz,
       tajweedLevel: form.tajweedLevel,
       memorizationTarget: form.memorizationTarget,
-    });
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -99,8 +117,15 @@ export function CourseForm({ course, categories = [], onSubmit, onCancel, loadin
         <Select label="Level" value={form.level} onChange={(e) => set("level", e.target.value)} options={LEVEL_OPTIONS} />
         <Select label="Language" value={form.language} onChange={(e) => set("language", e.target.value)} options={LANGUAGE_OPTIONS} />
         <FormField label="Duration" value={form.duration} placeholder="e.g. 6 weeks" onChange={(e) => set("duration", e.target.value)} />
-        <FormField label="Thumbnail URL" value={form.coverImageUrl} error={errors.coverImageUrl} onChange={(e) => set("coverImageUrl", e.target.value)} className="sm:col-span-2" />
-        <FormField label="Intro video URL" value={form.introVideoUrl} error={errors.introVideoUrl} onChange={(e) => set("introVideoUrl", e.target.value)} className="sm:col-span-2" />
+        <div className="sm:col-span-2">
+          <FormField label="Intro video URL" value={form.introVideoUrl} error={errors.introVideoUrl} onChange={(e) => set("introVideoUrl", e.target.value)} />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <input id="introVideoFile" type="file" accept="video/*" className="sr-only" onChange={handleIntroUpload} />
+            <label htmlFor="introVideoFile" className={`btn-secondary btn-sm ${uploadingIntro ? "pointer-events-none opacity-70" : ""}`}>
+              {uploadingIntro ? "Uploading..." : "Upload video"}
+            </label>
+          </div>
+        </div>
         <Textarea label="Learning outcomes" hint="One per line" value={form.learningOutcomes} onChange={(e) => set("learningOutcomes", e.target.value)} />
         <Textarea label="Requirements" hint="One per line" value={form.requirements} onChange={(e) => set("requirements", e.target.value)} />
       </div>
@@ -117,8 +142,7 @@ export function CourseForm({ course, categories = [], onSubmit, onCancel, loadin
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Select label="Pricing" value={form.paymentType} onChange={(e) => set("paymentType", e.target.value)} options={[{ value: "free", label: "Free" }, { value: "paid", label: "Paid (Waafi)" }]} />
-        {form.paymentType === "paid" && <FormField label="Price (USD)" type="number" min="1" step="0.01" required value={form.price} error={errors.price} onChange={(e) => set("price", e.target.value)} />}
+        <FormField label="Price (USD)" type="number" min="0" step="0.01" value={form.price} error={errors.price} placeholder="0 = Free" onChange={(e) => set("price", e.target.value)} />
         <Select label="Status" value={form.status} onChange={(e) => set("status", e.target.value)} options={STATUS_OPTIONS} hint="Only published courses appear in the student catalog" />
       </div>
 
@@ -144,7 +168,7 @@ export function CourseForm({ course, categories = [], onSubmit, onCancel, loadin
             Cancel
           </Button>
         )}
-        <Button variant="primary" type="submit" icon={Save} loading={loading}>
+        <Button variant="primary" type="submit" icon={Save} loading={loading || submitting}>
           {submitLabel}
         </Button>
       </div>

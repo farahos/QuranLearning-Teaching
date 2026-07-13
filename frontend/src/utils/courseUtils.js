@@ -11,6 +11,44 @@ export function isFreeCourse(course) {
   return !course?.price || Number(course.price) === 0;
 }
 
+export function lessonsToPlaylist(course) {
+  const lessons = Array.isArray(course?.lessons) ? course.lessons : [];
+  if (!lessons.length) return null;
+  return {
+    id: `server-lessons-${getId(course) || "course"}`,
+    title: "Lessons",
+    description: "Course videos and lesson content.",
+    order: 1,
+    locked: false,
+    preview: true,
+    sections: lessons.map((lesson, index) => ({
+      id: lesson._id || lesson.id || `lesson-${index + 1}`,
+      title: lesson.title || `Lesson ${index + 1}`,
+      type: lesson.type || "video",
+      videoUrl: lesson.videoUrl || "",
+      description: lesson.description || "",
+      locked: !!lesson.locked,
+      preview: lesson.preview ?? index === 0,
+      completed: false,
+    })),
+  };
+}
+
+export function playlistsToLessons(playlists = []) {
+  return playlists.flatMap((playlist) =>
+    (playlist.sections || [])
+      .filter((section) => section.title?.trim())
+      .map((section) => ({
+        title: section.title.trim(),
+        type: section.type || "video",
+        videoUrl: section.videoUrl || "",
+        description: section.description || "",
+        locked: !!section.locked,
+        preview: !!section.preview,
+      }))
+  );
+}
+
 /**
  * The backend Course schema only stores { courseName, description, price,
  * category, coverImageUrl, introVideoUrl, lessons, enrolledStudents }. Fields
@@ -22,6 +60,7 @@ export function isFreeCourse(course) {
  */
 export function withCourseExtras(course, index = 0) {
   const template = demoCourseExtras[index % demoCourseExtras.length];
+  const serverPlaylist = lessonsToPlaylist(course);
   return {
     status: COURSE_STATUS.PUBLISHED,
     level: template.level,
@@ -34,7 +73,7 @@ export function withCourseExtras(course, index = 0) {
     certificateRequiresAllLessons: template.certificateRequiresAllLessons,
     certificateMinCompletion: template.certificateMinCompletion,
     downloadableMaterials: template.downloadableMaterials,
-    playlists: template.playlists,
+    playlists: serverPlaylist ? [serverPlaylist] : template.playlists,
     materials: template.materials,
     surah: template.surah,
     juz: template.juz,

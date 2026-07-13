@@ -3,16 +3,16 @@ export function FormField({ label, required, error, hint, as = "input", options 
   const controlClass = `${as === "textarea" ? "textarea" : as === "select" ? "select" : "input"} ${error ? "input-error" : ""} ${inputClassName}`;
 
   return (
-    <label className={`block ${className}`} htmlFor={fieldId}>
+    <div className={`block ${className}`}>
       {label && (
-        <span className="label">
+        <label className="label" htmlFor={fieldId}>
           {label}
           {required && (
             <span className="required-star" aria-hidden="true">
               *
             </span>
           )}
-        </span>
+        </label>
       )}
       {children ? (
         children
@@ -30,6 +30,6 @@ export function FormField({ label, required, error, hint, as = "input", options 
         <input id={fieldId} className={controlClass} aria-invalid={!!error} required={required} {...inputProps} />
       )}
       {error ? <p className="field-error">{error}</p> : hint ? <p className="field-hint">{hint}</p> : null}
-    </label>
+    </div>
   );
 }

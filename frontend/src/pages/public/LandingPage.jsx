@@ -61,7 +61,7 @@ export function LandingPage() {
             <div key={category.id} className="card-pad text-center">
               <BookOpen size={18} className="mx-auto text-quran-teal" />
               <p className="mt-2 text-sm font-black text-quran-text">{category.name}</p>
-              <p className="mt-0.5 text-xs text-quran-muted">{category.isFree ? "Free" : formatCurrency(category.price)}</p>
+              <p className="mt-0.5 text-xs text-quran-muted">{category.courseCount || 0} courses</p>
             </div>
           ))}
         </div>
@@ -99,6 +99,13 @@ export function LandingPage() {
                         <Users size={13} /> {course.enrolledStudents?.length || 0}
                       </span>
                     </div>
+                    <Link
+                      to="/login"
+                      state={{ from: `/student/courses/${course._id}` }}
+                      className="btn-secondary btn-sm mt-1 w-full justify-center"
+                    >
+                      View details
+                    </Link>
                   </div>
                 </article>
               ))}

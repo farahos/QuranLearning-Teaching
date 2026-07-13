@@ -13,7 +13,11 @@ const courseSchema = new mongoose.Schema(
     lessons: [
       {
         title: { type: String, required: true },
-        videoUrl: { type: String, required: true }
+        type: { type: String, default: "video" },
+        videoUrl: { type: String, default: "" },
+        description: { type: String, default: "" },
+        locked: { type: Boolean, default: false },
+        preview: { type: Boolean, default: false }
       }
     ],
     enrolledStudents: [

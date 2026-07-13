@@ -15,6 +15,7 @@ export function minLength(value, length) {
 
 export function isValidUrl(value) {
   if (!value) return true;
+  if (String(value).startsWith("/")) return true;
   try {
     new URL(value);
     return true;

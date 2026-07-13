@@ -9,12 +9,10 @@ import { EmptyState } from "../../components/common/EmptyState";
 import { FormField } from "../../components/common/FormField";
 import { Modal } from "../../components/common/Modal";
 import { SearchInput } from "../../components/common/SearchInput";
-import { Select } from "../../components/common/Select";
 import { useToast } from "../../components/common/Toast";
 import { addCategory, clearCategoryMessage, removeCategory, toggleCategoryActive, updateCategory } from "../../features/categories/categorySlice";
-import { formatCurrency } from "../../utils/formatters";
 
-const EMPTY_FORM = { name: "", description: "", price: 0, isFree: true, thumbnailUrl: "" };
+const EMPTY_FORM = { name: "", description: "" };
 
 export function TeacherCategoriesPage() {
   const dispatch = useDispatch();
@@ -50,9 +48,6 @@ export function TeacherCategoriesPage() {
     setForm({
       name: category.name || "",
       description: category.description || "",
-      price: category.price || 0,
-      isFree: category.isFree ?? category.price === 0,
-      thumbnailUrl: category.thumbnailUrl || "",
     });
     setModalOpen(true);
   }
@@ -70,9 +65,6 @@ export function TeacherCategoriesPage() {
     const payload = {
       name: form.name.trim(),
       description: form.description.trim(),
-      price: form.isFree ? 0 : Number(form.price) || 0,
-      isFree: form.isFree,
-      thumbnailUrl: form.thumbnailUrl.trim(),
     };
     if (editingId) {
       dispatch(updateCategory({ id: editingId, updates: payload }));
@@ -120,7 +112,6 @@ export function TeacherCategoriesPage() {
                 <Badge tone={category.active ? "green" : "gray"}>{category.active ? "Active" : "Inactive"}</Badge>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-bold text-quran-muted">
-                <span>{category.isFree || !category.price ? <Badge tone="blue">Free</Badge> : formatCurrency(category.price)}</span>
                 <span>{category.courseCount || 0} courses</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-2 border-t border-quran-line pt-3">
@@ -165,17 +156,6 @@ export function TeacherCategoriesPage() {
         <form onSubmit={handleSave} className="space-y-4">
           <FormField label="Category name" required value={form.name} onChange={(e) => set("name", e.target.value)} />
           <FormField as="textarea" label="Description" value={form.description} onChange={(e) => set("description", e.target.value)} />
-          <Select
-            label="Pricing"
-            value={form.isFree ? "free" : "paid"}
-            onChange={(e) => set("isFree", e.target.value === "free")}
-            options={[
-              { value: "free", label: "Free" },
-              { value: "paid", label: "Paid" },
-            ]}
-          />
-          {!form.isFree && <FormField label="Price (USD)" type="number" min="0" step="0.01" value={form.price} onChange={(e) => set("price", e.target.value)} />}
-          <FormField label="Thumbnail URL" value={form.thumbnailUrl} onChange={(e) => set("thumbnailUrl", e.target.value)} />
         </form>
       </Modal>
 

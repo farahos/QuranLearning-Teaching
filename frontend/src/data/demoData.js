@@ -11,13 +11,13 @@ function id(prefix) {
   return `${prefix}-${uid}`;
 }
 
+// Categories have no pricing of their own — price lives on individual courses
+// (see CourseForm) since a category can contain both free and paid courses.
 export const demoCategories = [
   {
     id: id("cat"),
     name: "Quran Reading",
     description: "Foundational Qaidah and Mushaf reading fluency.",
-    price: 0,
-    isFree: true,
     active: true,
     thumbnailUrl: "",
     courseCount: 2,
@@ -26,8 +26,6 @@ export const demoCategories = [
     id: id("cat"),
     name: "Tajweed",
     description: "Makharij, sifaat and recitation rules with corrections.",
-    price: 100,
-    isFree: false,
     active: true,
     thumbnailUrl: "",
     courseCount: 3,
@@ -36,8 +34,6 @@ export const demoCategories = [
     id: id("cat"),
     name: "Hifz",
     description: "Structured memorization plans with daily revision.",
-    price: 120,
-    isFree: false,
     active: true,
     thumbnailUrl: "",
     courseCount: 2,
@@ -46,8 +42,6 @@ export const demoCategories = [
     id: id("cat"),
     name: "Tafsir",
     description: "Understanding the meaning and context of the ayat.",
-    price: 90,
-    isFree: false,
     active: true,
     thumbnailUrl: "",
     courseCount: 1,
@@ -56,8 +50,6 @@ export const demoCategories = [
     id: id("cat"),
     name: "Arabic for Quran",
     description: "Classical Arabic grammar and vocabulary for learners.",
-    price: 60,
-    isFree: false,
     active: true,
     thumbnailUrl: "",
     courseCount: 1,
@@ -66,8 +58,6 @@ export const demoCategories = [
     id: id("cat"),
     name: "Islamic Studies",
     description: "Aqeedah, fiqh and seerah fundamentals.",
-    price: 0,
-    isFree: true,
     active: false,
     thumbnailUrl: "",
     courseCount: 0,

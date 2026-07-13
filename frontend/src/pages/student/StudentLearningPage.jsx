@@ -318,6 +318,18 @@ export function StudentLearningPage() {
 
 function SectionContent({ section, course, material }) {
   if (section.type === "video" || section.type === "audio") {
+    const mediaUrl = api.mediaUrl(section.videoUrl || section.audioUrl || "");
+    if (mediaUrl) {
+      return section.type === "video" ? (
+        <video controls className="h-72 w-full rounded-lg bg-black object-contain" src={mediaUrl}>
+          Your browser does not support video playback.
+        </video>
+      ) : (
+        <audio controls className="w-full" src={mediaUrl}>
+          Your browser does not support audio playback.
+        </audio>
+      );
+    }
     return (
       <div className="flex h-56 flex-col items-center justify-center gap-2 rounded-lg bg-quran-soft text-quran-muted">
         <PlayCircle size={40} className="text-quran-green" aria-hidden="true" />
