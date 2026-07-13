@@ -11,8 +11,8 @@ function id(prefix) {
   return `${prefix}-${uid}`;
 }
 
-// Categories have no pricing of their own — price lives on individual courses
-// (see CourseForm) since a category can contain both free and paid courses.
+// Each category carries its own price — every course placed in a category
+// takes that category's price (see CourseForm).
 export const demoCategories = [
   {
     id: id("cat"),
@@ -21,6 +21,7 @@ export const demoCategories = [
     active: true,
     thumbnailUrl: "",
     courseCount: 2,
+    price: 0,
   },
   {
     id: id("cat"),
@@ -29,6 +30,7 @@ export const demoCategories = [
     active: true,
     thumbnailUrl: "",
     courseCount: 3,
+    price: 15,
   },
   {
     id: id("cat"),
@@ -37,6 +39,7 @@ export const demoCategories = [
     active: true,
     thumbnailUrl: "",
     courseCount: 2,
+    price: 25,
   },
   {
     id: id("cat"),
@@ -45,6 +48,7 @@ export const demoCategories = [
     active: true,
     thumbnailUrl: "",
     courseCount: 1,
+    price: 20,
   },
   {
     id: id("cat"),
@@ -53,6 +57,7 @@ export const demoCategories = [
     active: true,
     thumbnailUrl: "",
     courseCount: 1,
+    price: 15,
   },
   {
     id: id("cat"),
@@ -61,6 +66,7 @@ export const demoCategories = [
     active: false,
     thumbnailUrl: "",
     courseCount: 0,
+    price: 0,
   },
 ];
 

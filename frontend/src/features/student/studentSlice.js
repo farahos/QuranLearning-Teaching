@@ -43,6 +43,14 @@ const studentSlice = createSlice({
   name: "student",
   initialState,
   reducers: {
+    hydrateStudentState(state, action) {
+      const { progress, favorites, freeEnrollments, recitations, myReviews } = action.payload || {};
+      if (progress) state.progress = progress;
+      if (favorites) state.favorites = favorites;
+      if (freeEnrollments) state.freeEnrollments = freeEnrollments;
+      if (recitations) state.recitations = recitations;
+      if (myReviews) state.myReviews = myReviews;
+    },
     clearStudentMessage(state) {
       state.message = "";
       state.error = "";
@@ -119,6 +127,7 @@ const studentSlice = createSlice({
 });
 
 export const {
+  hydrateStudentState,
   clearStudentMessage,
   resetPaymentState,
   toggleFavorite,

@@ -7,6 +7,7 @@ import { Button } from "../common/Button";
 import { COURSE_LANGUAGES, COURSE_LEVELS, COURSE_STATUS, COURSE_STATUS_LABELS } from "../../utils/constants";
 import { runValidation, validators } from "../../utils/validators";
 import { uploadApi } from "../../api/uploadApi";
+import { formatCurrency } from "../../utils/formatters";
 
 const STATUS_OPTIONS = Object.entries(COURSE_STATUS_LABELS).map(([value, label]) => ({ value, label }));
 const LEVEL_OPTIONS = COURSE_LEVELS.map((level) => ({ value: level, label: level }));
@@ -34,7 +35,6 @@ export function CourseForm({ course, categories = [], onSubmit, onCancel, loadin
     duration: course?.duration || "",
     learningOutcomes: toLines(course?.learningOutcomes),
     requirements: toLines(course?.requirements),
-    price: course?.price ? String(course.price) : "",
     status: course?.status || COURSE_STATUS.DRAFT,
     certificateEnabled: course?.certificateEnabled ?? true,
     downloadableMaterials: course?.downloadableMaterials ?? true,
@@ -46,6 +46,9 @@ export function CourseForm({ course, categories = [], onSubmit, onCancel, loadin
   const [errors, setErrors] = useState({});
   const [uploadingIntro, setUploadingIntro] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const selectedCategory = categories.find((c) => c.name === form.category);
+  const categoryPrice = Number(selectedCategory?.price) || 0;
 
   function set(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -74,7 +77,6 @@ export function CourseForm({ course, categories = [], onSubmit, onCancel, loadin
       description: [validators.required("Full description is required")],
       category: [validators.required("Choose a category")],
       introVideoUrl: [validators.url()],
-      price: [(value) => (Number(value || 0) >= 0 ? null : "Enter a valid price")],
     };
     const validationErrors = runValidation(form, rules);
     setErrors(validationErrors);
@@ -93,7 +95,7 @@ export function CourseForm({ course, categories = [], onSubmit, onCancel, loadin
       duration: form.duration,
       learningOutcomes: fromLines(form.learningOutcomes),
       requirements: fromLines(form.requirements),
-      price: Number(form.price) || 0,
+      price: categoryPrice,
       status: form.status,
       certificateEnabled: form.certificateEnabled,
       downloadableMaterials: form.downloadableMaterials,
@@ -113,7 +115,15 @@ export function CourseForm({ course, categories = [], onSubmit, onCancel, loadin
         <FormField label="Course title" required value={form.courseName} error={errors.courseName} onChange={(e) => set("courseName", e.target.value)} className="sm:col-span-2" />
         <FormField label="Short description" value={form.shortDescription} hint="One sentence shown on course cards" onChange={(e) => set("shortDescription", e.target.value)} className="sm:col-span-2" />
         <Textarea label="Full description" required value={form.description} error={errors.description} onChange={(e) => set("description", e.target.value)} className="sm:col-span-2" />
-        <Select label="Category" required value={form.category} error={errors.category} onChange={(e) => set("category", e.target.value)} options={categories.map((c) => ({ value: c.name, label: c.name }))} />
+        <Select
+          label="Category"
+          required
+          value={form.category}
+          error={errors.category}
+          hint={selectedCategory ? `Course price: ${formatCurrency(categoryPrice)} (set on the category)` : undefined}
+          onChange={(e) => set("category", e.target.value)}
+          options={categories.map((c) => ({ value: c.name, label: c.name }))}
+        />
         <Select label="Level" value={form.level} onChange={(e) => set("level", e.target.value)} options={LEVEL_OPTIONS} />
         <Select label="Language" value={form.language} onChange={(e) => set("language", e.target.value)} options={LANGUAGE_OPTIONS} />
         <FormField label="Duration" value={form.duration} placeholder="e.g. 6 weeks" onChange={(e) => set("duration", e.target.value)} />
@@ -142,7 +152,6 @@ export function CourseForm({ course, categories = [], onSubmit, onCancel, loadin
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormField label="Price (USD)" type="number" min="0" step="0.01" value={form.price} error={errors.price} placeholder="0 = Free" onChange={(e) => set("price", e.target.value)} />
         <Select label="Status" value={form.status} onChange={(e) => set("status", e.target.value)} options={STATUS_OPTIONS} hint="Only published courses appear in the student catalog" />
       </div>
 

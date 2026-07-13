@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -316,18 +316,119 @@ export function StudentLearningPage() {
   );
 }
 
+function mediaPositionKey(courseId, sectionId) {
+  return `quranconnect.mediaPosition.${courseId}.${sectionId}`;
+}
+
+function getEmbedUrl(rawUrl) {
+  let url;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return null;
+  }
+  const host = url.hostname.replace(/^www\./, "");
+
+  if (host === "youtu.be") {
+    const id = url.pathname.slice(1);
+    return id ? `https://www.youtube.com/embed/${id}` : null;
+  }
+  if (host === "youtube.com" || host === "m.youtube.com") {
+    if (url.pathname === "/watch") {
+      const id = url.searchParams.get("v");
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (url.pathname.startsWith("/embed/")) return rawUrl;
+    if (url.pathname.startsWith("/shorts/")) {
+      const id = url.pathname.split("/")[2];
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+  }
+  if (host === "vimeo.com") {
+    const id = url.pathname.split("/").filter(Boolean)[0];
+    return id ? `https://player.vimeo.com/video/${id}` : null;
+  }
+  if (host === "player.vimeo.com") return rawUrl;
+
+  return null;
+}
+
+function MediaPlayer({ as: Tag, courseId, sectionId, mediaUrl, className, children }) {
+  const ref = useRef(null);
+  const storageKey = mediaPositionKey(courseId, sectionId);
+  const lastSaveRef = useRef(0);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return undefined;
+
+    const restorePosition = () => {
+      const saved = Number(localStorage.getItem(storageKey));
+      if (saved > 0 && saved < node.duration - 1) node.currentTime = saved;
+    };
+    const savePosition = () => {
+      const now = Date.now();
+      if (now - lastSaveRef.current < 3000) return;
+      lastSaveRef.current = now;
+      try {
+        localStorage.setItem(storageKey, String(node.currentTime));
+      } catch {
+        // storage unavailable — position just won't be remembered
+      }
+    };
+    const clearOnEnd = () => {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {
+        // ignore
+      }
+    };
+
+    node.addEventListener("loadedmetadata", restorePosition);
+    node.addEventListener("timeupdate", savePosition);
+    node.addEventListener("pause", savePosition);
+    node.addEventListener("ended", clearOnEnd);
+    return () => {
+      savePosition();
+      node.removeEventListener("loadedmetadata", restorePosition);
+      node.removeEventListener("timeupdate", savePosition);
+      node.removeEventListener("pause", savePosition);
+      node.removeEventListener("ended", clearOnEnd);
+    };
+  }, [storageKey]);
+
+  return (
+    <Tag ref={ref} controls className={className} src={mediaUrl}>
+      {children}
+    </Tag>
+  );
+}
+
 function SectionContent({ section, course, material }) {
   if (section.type === "video" || section.type === "audio") {
-    const mediaUrl = api.mediaUrl(section.videoUrl || section.audioUrl || "");
+    const rawUrl = section.videoUrl || section.audioUrl || "";
+    const embedUrl = section.type === "video" ? getEmbedUrl(rawUrl) : null;
+    if (embedUrl) {
+      return (
+        <iframe
+          className="h-72 w-full rounded-lg bg-black"
+          src={embedUrl}
+          title={section.title}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      );
+    }
+    const mediaUrl = api.mediaUrl(rawUrl);
     if (mediaUrl) {
       return section.type === "video" ? (
-        <video controls className="h-72 w-full rounded-lg bg-black object-contain" src={mediaUrl}>
+        <MediaPlayer as="video" courseId={course._id} sectionId={section.id} mediaUrl={mediaUrl} className="h-72 w-full rounded-lg bg-black object-contain">
           Your browser does not support video playback.
-        </video>
+        </MediaPlayer>
       ) : (
-        <audio controls className="w-full" src={mediaUrl}>
+        <MediaPlayer as="audio" courseId={course._id} sectionId={section.id} mediaUrl={mediaUrl} className="w-full">
           Your browser does not support audio playback.
-        </audio>
+        </MediaPlayer>
       );
     }
     return (

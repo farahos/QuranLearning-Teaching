@@ -11,14 +11,17 @@ import { Modal } from "../../components/common/Modal";
 import { SearchInput } from "../../components/common/SearchInput";
 import { useToast } from "../../components/common/Toast";
 import { addCategory, clearCategoryMessage, removeCategory, toggleCategoryActive, updateCategory } from "../../features/categories/categorySlice";
+import { formatCurrency } from "../../utils/formatters";
 
-const EMPTY_FORM = { name: "", description: "" };
+const EMPTY_FORM = { name: "", description: "", price: "" };
 
 export function TeacherCategoriesPage() {
   const dispatch = useDispatch();
   const toast = useToast();
   const categories = useSelector((state) => state.categories.items);
   const message = useSelector((state) => state.categories.message);
+  const error = useSelector((state) => state.categories.error);
+  const saveStatus = useSelector((state) => state.categories.saveStatus);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -30,6 +33,12 @@ export function TeacherCategoriesPage() {
     toast.success(message);
     dispatch(clearCategoryMessage());
   }, [message, toast, dispatch]);
+
+  useEffect(() => {
+    if (!error) return;
+    toast.error(error);
+    dispatch(clearCategoryMessage());
+  }, [error, toast, dispatch]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -48,6 +57,7 @@ export function TeacherCategoriesPage() {
     setForm({
       name: category.name || "",
       description: category.description || "",
+      price: category.price ? String(category.price) : "",
     });
     setModalOpen(true);
   }
@@ -56,22 +66,31 @@ export function TeacherCategoriesPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function handleSave(event) {
+  async function handleSave(event) {
     event.preventDefault();
     if (!form.name.trim()) {
       toast.error("Category name is required");
       return;
     }
+    if (Number(form.price || 0) < 0) {
+      toast.error("Enter a valid price");
+      return;
+    }
     const payload = {
       name: form.name.trim(),
       description: form.description.trim(),
+      price: Number(form.price) || 0,
     };
-    if (editingId) {
-      dispatch(updateCategory({ id: editingId, updates: payload }));
-    } else {
-      dispatch(addCategory(payload));
+    try {
+      if (editingId) {
+        await dispatch(updateCategory({ id: editingId, updates: payload })).unwrap();
+      } else {
+        await dispatch(addCategory(payload)).unwrap();
+      }
+      setModalOpen(false);
+    } catch {
+      // Error toast is handled from Redux state.
     }
-    setModalOpen(false);
   }
 
   function handleDelete() {
@@ -79,8 +98,8 @@ export function TeacherCategoriesPage() {
     setPendingDeleteId(null);
   }
 
-  function handleToggle(id) {
-    dispatch(toggleCategoryActive(id));
+  function handleToggle(category) {
+    dispatch(toggleCategoryActive(category));
   }
 
   return (
@@ -90,7 +109,6 @@ export function TeacherCategoriesPage() {
           <h1 className="page-title">Categories</h1>
           <p className="page-subtitle">Manage the course categories students browse by.</p>
         </div>
-        <Badge tone="amber">Not saved to server</Badge>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -113,12 +131,13 @@ export function TeacherCategoriesPage() {
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-bold text-quran-muted">
                 <span>{category.courseCount || 0} courses</span>
+                <span>{category.price ? formatCurrency(category.price) : "Free"}</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-2 border-t border-quran-line pt-3">
                 <Button variant="secondary" size="sm" icon={Pencil} onClick={() => openEdit(category)}>
                   Edit
                 </Button>
-                <Button variant="secondary" size="sm" icon={Power} onClick={() => handleToggle(category.id)}>
+                <Button variant="secondary" size="sm" icon={Power} onClick={() => handleToggle(category)}>
                   {category.active ? "Deactivate" : "Activate"}
                 </Button>
                 <Button
@@ -147,7 +166,7 @@ export function TeacherCategoriesPage() {
             <Button variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleSave}>
+            <Button variant="primary" onClick={handleSave} loading={saveStatus === "loading"}>
               {editingId ? "Save changes" : "Add category"}
             </Button>
           </>
@@ -156,13 +175,23 @@ export function TeacherCategoriesPage() {
         <form onSubmit={handleSave} className="space-y-4">
           <FormField label="Category name" required value={form.name} onChange={(e) => set("name", e.target.value)} />
           <FormField as="textarea" label="Description" value={form.description} onChange={(e) => set("description", e.target.value)} />
+          <FormField
+            label="Price (USD)"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0 = Free"
+            hint="Courses placed in this category will use this price"
+            value={form.price}
+            onChange={(e) => set("price", e.target.value)}
+          />
         </form>
       </Modal>
 
       <ConfirmDialog
         open={Boolean(pendingDeleteId)}
         title="Delete category?"
-        description="This removes the category from your local list. It is not connected to the server yet."
+        description="This removes the category from the server."
         confirmLabel="Delete category"
         onClose={() => setPendingDeleteId(null)}
         onConfirm={handleDelete}

@@ -74,11 +74,11 @@ async function login(req, res) {
   const { email, password } = req.body;
   const user = await User.findOne({ email: email.toLowerCase() });
   if (!user) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    return res.status(404).json({ message: "Email ma jiro" });
   }
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    return res.status(401).json({ message: "Password waa khalad" });
   }
   if (user.active === false) {
     return res.status(403).json({ message: "Your account is not active yet" });
