@@ -14,7 +14,7 @@ import { useToast } from "../../components/common/Toast";
 import { CourseDetails } from "../../components/courses/CourseDetails";
 import { RatingForm } from "../../components/courses/RatingForm";
 import { fetchCourseById } from "../../features/courses/courseSlice";
-import { enrollFree, payForCourse, resetPaymentState, submitCourseReview, toggleFavorite, editMyReview, deleteMyReview } from "../../features/student/studentSlice";
+import { enrollFree, fetchFavorites, payForCourse, resetPaymentState, submitCourseReview, toggleFavoriteThunk, editMyReview, deleteMyReview } from "../../features/student/studentSlice";
 import { getId, isFreeCourse } from "../../utils/courseUtils";
 import { formatCurrency } from "../../utils/formatters";
 import { PAYMENT_METHODS } from "../../utils/constants";
@@ -28,7 +28,11 @@ export function StudentCourseDetailsPage() {
 
   const user = useSelector((state) => state.auth.user);
   const { items, selected, status, error } = useSelector((state) => state.courses);
-  const { favorites, freeEnrollments, payment, myReviews, reviewStatus, reviewError } = useSelector((state) => state.student);
+  const { favorites, favoritesStatus, freeEnrollments, payment, myReviews, reviewStatus, reviewError } = useSelector((state) => state.student);
+
+  useEffect(() => {
+    if (user && favoritesStatus === "idle") dispatch(fetchFavorites());
+  }, [dispatch, user, favoritesStatus]);
 
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0].value);
@@ -91,6 +95,7 @@ export function StudentCourseDetailsPage() {
   const isEnrolled = (course.enrolledStudents || []).some((entry) => getId(entry.student ?? entry) === userId) || freeEnrollments.includes(course._id);
   const isFavorite = favorites.includes(course._id);
   const free = isFreeCourse(course);
+  const canAccessPaidContent = free || isEnrolled;
 
   function handleEnrollFree() {
     if (!user) {
@@ -140,8 +145,8 @@ export function StudentCourseDetailsPage() {
           variant={isFavorite ? "primary" : "secondary"}
           icon={Heart}
           onClick={() => {
-            dispatch(toggleFavorite(course._id));
-            toast.info(isFavorite ? "Removed from favorites (demo only — not connected to the backend yet)" : "Added to favorites (demo only — not connected to the backend yet)");
+            dispatch(toggleFavoriteThunk(course._id));
+            toast.info(isFavorite ? "Removed from favorites" : "Added to favorites");
           }}
         >
           {isFavorite ? "Favorited" : "Favorite"}
@@ -210,7 +215,7 @@ export function StudentCourseDetailsPage() {
   return (
     <section className="space-y-6">
       <PageHeader />
-      <CourseDetails course={course} headerActions={headerActions} ratingsSection={ratingsSection} />
+      <CourseDetails course={course} headerActions={headerActions} ratingsSection={ratingsSection} canAccessPaidContent={canAccessPaidContent} />
 
       <Modal
         open={payModalOpen}

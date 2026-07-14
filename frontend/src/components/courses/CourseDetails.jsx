@@ -192,8 +192,30 @@ export function CourseDetails({ course, headerActions, ratingsSection, canAccess
           <h2 className="text-base font-black text-quran-text">Materials</h2>
           <ul className="mt-3 space-y-2">
             {course.materials.map((material) => (
-              <li key={material.id} className="flex items-center gap-2 text-sm text-quran-muted">
-                <FileText size={15} className="text-quran-teal" /> {material.title} <span className="text-xs">({material.fileType})</span>
+              <li key={material.id} className="flex flex-wrap items-center justify-between gap-2 text-sm text-quran-muted">
+                <span className="flex min-w-0 items-center gap-2">
+                  <FileText size={15} className="shrink-0 text-quran-teal" /> <span className="truncate">{material.title}</span> <span className="text-xs">({material.fileType})</span>
+                </span>
+                {!allowFullAccess ? (
+                  <span className="flex items-center gap-1 text-xs font-bold text-quran-muted">
+                    <Lock size={13} /> Enroll to download
+                  </span>
+                ) : material.disabled ? (
+                  <Badge tone="gray">Disabled</Badge>
+                ) : material.fileUrl ? (
+                  <span className="flex items-center gap-2">
+                    <a href={api.mediaUrl(material.fileUrl)} target="_blank" rel="noreferrer" className="text-xs font-black text-quran-green hover:underline">
+                      Open
+                    </a>
+                    {material.downloadAllowed && (
+                      <a href={api.mediaUrl(material.fileUrl)} download className="text-xs font-black text-quran-green hover:underline">
+                        Download
+                      </a>
+                    )}
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-quran-muted">File not uploaded</span>
+                )}
               </li>
             ))}
           </ul>

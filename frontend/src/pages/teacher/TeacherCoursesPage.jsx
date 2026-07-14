@@ -145,7 +145,7 @@ export function TeacherCoursesPage() {
       )}
 
       <Modal open={Boolean(previewCourse)} onClose={() => setPreviewCourse(null)} title={previewCourse?.courseName} size="xl">
-        {previewCourse && <CourseDetails course={previewCourse} />}
+        {previewCourse && <CourseDetails course={previewCourse} canAccessPaidContent teacherPreviewMode />}
       </Modal>
 
       <ConfirmDialog

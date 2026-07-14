@@ -1,20 +1,16 @@
-// TODO(api): The backend has no /api/notifications resource yet. This entire
-// feature runs on locally-generated demo notifications (see data/demoData.js
-// and features/notifications/notificationSlice.js) until real endpoints exist:
-//   GET /api/notifications, PATCH /api/notifications/:id/read,
-//   PATCH /api/notifications/read-all, DELETE /api/notifications/:id
+import { api } from "./client";
 
 export const notificationApi = {
   list() {
-    return Promise.reject(new Error("Notifications are not connected to the backend yet."));
+    return api.get("/notifications");
   },
-  markRead() {
-    return Promise.reject(new Error("Notifications are not connected to the backend yet."));
+  markRead(id) {
+    return api.patch(`/notifications/${id}/read`, {});
   },
   markAllRead() {
-    return Promise.reject(new Error("Notifications are not connected to the backend yet."));
+    return api.patch("/notifications/read-all", {});
   },
-  remove() {
-    return Promise.reject(new Error("Notifications are not connected to the backend yet."));
+  remove(id) {
+    return api.delete(`/notifications/${id}`);
   },
 };

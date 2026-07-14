@@ -9,23 +9,24 @@ import { Button } from "../../components/common/Button";
 import { useToast } from "../../components/common/Toast";
 import { CourseCard } from "../../components/courses/CourseCard";
 import { fetchCourses } from "../../features/courses/courseSlice";
-import { toggleFavorite } from "../../features/student/studentSlice";
+import { fetchFavorites, toggleFavoriteThunk } from "../../features/student/studentSlice";
 
 export function StudentFavoritesPage() {
   const dispatch = useDispatch();
   const toast = useToast();
   const { items: courses, status, error } = useSelector((state) => state.courses);
-  const favorites = useSelector((state) => state.student.favorites);
+  const { favorites, favoritesStatus } = useSelector((state) => state.student);
 
   useEffect(() => {
     dispatch(fetchCourses());
+    dispatch(fetchFavorites());
   }, [dispatch]);
 
   const favoriteCourses = courses.filter((course) => favorites.includes(course._id));
 
   function handleRemove(courseId) {
-    dispatch(toggleFavorite(courseId));
-    toast.info("Removed from favorites (demo only — not connected to the backend yet)");
+    dispatch(toggleFavoriteThunk(courseId));
+    toast.info("Removed from favorites");
   }
 
   return (

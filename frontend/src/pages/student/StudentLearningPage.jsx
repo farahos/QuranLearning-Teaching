@@ -163,7 +163,8 @@ export function StudentLearningPage() {
   const sectionRecitations = currentSection ? recitations.filter((item) => item.sectionId === currentSection.id && item.courseId === courseId) : [];
   const isCompleted = currentSection ? progressEntry.completedSectionIds?.includes(currentSection.id) : false;
   const material = currentSection
-    ? (course.materials || []).find((item) => item.fileType?.toLowerCase() === (currentSection.type === "pdf" ? "pdf" : currentSection.type === "powerpoint" ? "powerpoint" : ""))
+    ? (course.materials || []).find((item) => item.sectionId === currentSection.id) ||
+      (course.materials || []).find((item) => item.fileType?.toLowerCase() === (currentSection.type === "pdf" ? "pdf" : currentSection.type === "powerpoint" ? "powerpoint" : ""))
     : null;
 
   return (
@@ -446,12 +447,28 @@ function SectionContent({ section, course, material }) {
     );
   }
   if (section.type === "pdf" || section.type === "powerpoint") {
+    const materialUrl = material?.fileUrl ? api.mediaUrl(material.fileUrl) : "";
     return (
       <div className="rounded-lg bg-quran-soft p-4">
-        {material ? (
-          <a href={api.mediaUrl(material.fileUrl) || "#"} target="_blank" rel="noreferrer" className="btn-secondary btn-sm inline-flex items-center gap-2">
-            <FileText size={15} /> View material — {material.title}
-          </a>
+        {material?.disabled ? (
+          <p className="flex items-center gap-2 text-sm text-quran-muted">
+            <FileText size={15} /> This material is disabled by the teacher.
+          </p>
+        ) : materialUrl ? (
+          <div className="flex flex-wrap gap-2">
+            <a href={materialUrl} target="_blank" rel="noreferrer" className="btn-secondary btn-sm inline-flex items-center gap-2">
+              <FileText size={15} /> Open material
+            </a>
+            {material.downloadAllowed && (
+              <a href={materialUrl} download className="btn-secondary btn-sm inline-flex items-center gap-2">
+                <FileText size={15} /> Download material
+              </a>
+            )}
+          </div>
+        ) : material ? (
+          <p className="flex items-center gap-2 text-sm text-quran-muted">
+            <FileText size={15} /> This material does not have an uploaded file yet.
+          </p>
         ) : (
           <p className="flex items-center gap-2 text-sm text-quran-muted">
             <FileText size={15} /> No matching material has been uploaded for this lesson yet.

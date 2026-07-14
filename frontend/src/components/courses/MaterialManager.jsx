@@ -132,7 +132,8 @@ export function MaterialManager({ materials, onChange, sectionOptions = [] }) {
           </label>
           {uploadError && <p className="field-error mt-2">{uploadError}</p>}
         </div>
-        <p className="field-hint">
+        <p className="field-hint">Upload a document to fill the file URL automatically, or paste an existing document link.</p>
+        <p className="hidden">
           The backend only accepts image/video uploads today — PDF and PowerPoint files use a file URL until a document upload endpoint exists (see
           TODO in api/uploadApi.js).
         </p>

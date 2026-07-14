@@ -13,21 +13,23 @@ export const studentApi = {
   enrollFree() {
     return Promise.reject(new Error("Free enrollment is not connected to the backend yet."));
   },
-  // TODO(api): GET/POST/DELETE /api/favorites
   listFavorites() {
-    return Promise.reject(new Error("Favorites are not connected to the backend yet."));
+    return api.get("/users/me/favorites");
   },
-  // TODO(api): GET /api/progress, POST /api/progress/:lessonId/complete
-  listProgress() {
-    return Promise.reject(new Error("Progress tracking is not connected to the backend yet."));
+  addFavorite(courseId) {
+    return api.post(`/users/me/favorites/${courseId}`, {});
   },
-  // TODO(api): GET /api/certificates
+  removeFavorite(courseId) {
+    return api.delete(`/users/me/favorites/${courseId}`);
+  },
+  getProgress(courseId) {
+    return api.get(`/progress/${courseId}`);
+  },
+  updateProgress(courseId, payload) {
+    return api.put(`/progress/${courseId}`, payload);
+  },
   listCertificates() {
-    return Promise.reject(new Error("Certificates are not connected to the backend yet."));
-  },
-  // TODO(api): GET/PATCH/DELETE /api/notifications
-  listNotifications() {
-    return Promise.reject(new Error("Notifications are not connected to the backend yet."));
+    return api.get("/certificates");
   },
   // TODO(api): POST /api/recitations — Quran recitation task submissions
   submitRecitation() {

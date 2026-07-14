@@ -1,12 +1,17 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { studentApi } from "../../api/studentApi";
+import { getId } from "../../utils/courseUtils";
 
 const initialState = {
-  // TODO(api): GET/POST/DELETE /api/favorites — tracked locally (course ids) until then.
   favorites: [],
-  // TODO(api): GET/POST /api/progress — tracked locally per course until then.
+  favoritesStatus: "idle",
   // shape: { [courseId]: { completedSectionIds: string[], lastAccessedSectionId, notes: {}, updatedAt } }
+  // completedSectionIds/lastAccessedSectionId are persisted via GET/PUT /api/progress/:courseId
+  // (a lesson's id doubles as its "section" id — see courseUtils.lessonsToPlaylist). `notes` stays
+  // local-only; the backend Progress model has no field for it yet.
   progress: {},
+  certificates: [],
+  certificatesStatus: "idle",
   // TODO(api): POST /api/enrollments (free courses only — paid purchases are real, via payment.result).
   freeEnrollments: [],
   // TODO(api): POST /api/recitations
@@ -39,6 +44,71 @@ export const submitCourseReview = createAsyncThunk("student/submitReview", async
   }
 });
 
+export const fetchFavorites = createAsyncThunk("student/fetchFavorites", async (_, { rejectWithValue }) => {
+  try {
+    return await studentApi.listFavorites();
+  } catch (error) {
+    return rejectWithValue(error.message);
+  }
+});
+
+export const toggleFavoriteThunk = createAsyncThunk("student/toggleFavorite", async (courseId, { getState, rejectWithValue }) => {
+  try {
+    const isFavorite = getState().student.favorites.includes(courseId);
+    if (isFavorite) {
+      await studentApi.removeFavorite(courseId);
+      return { courseId, favorited: false };
+    }
+    await studentApi.addFavorite(courseId);
+    return { courseId, favorited: true };
+  } catch (error) {
+    return rejectWithValue(error.message);
+  }
+});
+
+export const fetchProgress = createAsyncThunk("student/fetchProgress", async (courseId, { rejectWithValue }) => {
+  try {
+    const data = await studentApi.getProgress(courseId);
+    return { courseId, data };
+  } catch (error) {
+    return rejectWithValue(error.message);
+  }
+});
+
+export const fetchProgressForCourses = createAsyncThunk(
+  "student/fetchProgressForCourses",
+  async (courseIds, { rejectWithValue }) => {
+    try {
+      const entries = await Promise.all(
+        courseIds.map(async (courseId) => [courseId, await studentApi.getProgress(courseId)])
+      );
+      return entries;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const completeLesson = createAsyncThunk(
+  "student/completeLesson",
+  async ({ courseId, lessonId, completed = true }, { rejectWithValue }) => {
+    try {
+      const data = await studentApi.updateProgress(courseId, { lessonId, completed });
+      return { courseId, data };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+export const fetchCertificates = createAsyncThunk("student/fetchCertificates", async (_, { rejectWithValue }) => {
+  try {
+    return await studentApi.listCertificates();
+  } catch (error) {
+    return rejectWithValue(error.message);
+  }
+});
+
 const studentSlice = createSlice({
   name: "student",
   initialState,
@@ -58,28 +128,10 @@ const studentSlice = createSlice({
     resetPaymentState(state) {
       state.payment = { status: "idle", error: "", result: null };
     },
-    toggleFavorite(state, action) {
-      const courseId = action.payload;
-      state.favorites = state.favorites.includes(courseId) ? state.favorites.filter((id) => id !== courseId) : [...state.favorites, courseId];
-    },
     enrollFree(state, action) {
       const courseId = action.payload;
       if (!state.freeEnrollments.includes(courseId)) state.freeEnrollments.push(courseId);
       state.message = "Enrolled (demo only — free enrollment is not connected to the backend yet)";
-    },
-    markSectionComplete(state, action) {
-      const { courseId, sectionId } = action.payload;
-      const entry = state.progress[courseId] || { completedSectionIds: [], notes: {} };
-      if (!entry.completedSectionIds.includes(sectionId)) entry.completedSectionIds.push(sectionId);
-      entry.lastAccessedSectionId = sectionId;
-      entry.updatedAt = new Date().toISOString();
-      state.progress[courseId] = entry;
-    },
-    setLastAccessed(state, action) {
-      const { courseId, sectionId } = action.payload;
-      const entry = state.progress[courseId] || { completedSectionIds: [], notes: {} };
-      entry.lastAccessedSectionId = sectionId;
-      state.progress[courseId] = entry;
     },
     saveLessonNote(state, action) {
       const { courseId, sectionId, note } = action.payload;
@@ -122,18 +174,58 @@ const studentSlice = createSlice({
       .addCase(submitCourseReview.rejected, (state, action) => {
         state.reviewStatus = "failed";
         state.reviewError = action.payload || "Could not submit rating";
+      })
+      .addCase(fetchFavorites.pending, (state) => {
+        state.favoritesStatus = "loading";
+      })
+      .addCase(fetchFavorites.fulfilled, (state, action) => {
+        state.favoritesStatus = "succeeded";
+        state.favorites = (action.payload || []).map((course) => getId(course));
+      })
+      .addCase(fetchFavorites.rejected, (state) => {
+        state.favoritesStatus = "failed";
+      })
+      .addCase(toggleFavoriteThunk.fulfilled, (state, action) => {
+        const { courseId, favorited } = action.payload;
+        state.favorites = favorited ? [...state.favorites, courseId] : state.favorites.filter((id) => id !== courseId);
+      })
+      .addCase(fetchProgress.fulfilled, (state, action) => {
+        applyProgress(state, action.payload.courseId, action.payload.data);
+      })
+      .addCase(fetchProgressForCourses.fulfilled, (state, action) => {
+        action.payload.forEach(([courseId, data]) => applyProgress(state, courseId, data));
+      })
+      .addCase(completeLesson.fulfilled, (state, action) => {
+        applyProgress(state, action.payload.courseId, action.payload.data);
+      })
+      .addCase(fetchCertificates.pending, (state) => {
+        state.certificatesStatus = "loading";
+      })
+      .addCase(fetchCertificates.fulfilled, (state, action) => {
+        state.certificatesStatus = "succeeded";
+        state.certificates = action.payload || [];
+      })
+      .addCase(fetchCertificates.rejected, (state) => {
+        state.certificatesStatus = "failed";
       });
   },
 });
+
+function applyProgress(state, courseId, data) {
+  const existing = state.progress[courseId] || { completedSectionIds: [], notes: {} };
+  state.progress[courseId] = {
+    completedSectionIds: data?.completedLessonIds || [],
+    lastAccessedSectionId: data?.lastAccessedLessonId || "",
+    notes: existing.notes || {},
+    updatedAt: data?.updatedAt || existing.updatedAt,
+  };
+}
 
 export const {
   hydrateStudentState,
   clearStudentMessage,
   resetPaymentState,
-  toggleFavorite,
   enrollFree,
-  markSectionComplete,
-  setLastAccessed,
   saveLessonNote,
   submitRecitation,
   editMyReview,
