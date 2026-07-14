@@ -9,7 +9,7 @@ import { Button } from "../../components/common/Button";
 import { CourseFilters } from "../../components/courses/CourseFilters";
 import { CourseCard } from "../../components/courses/CourseCard";
 import { fetchCourses } from "../../features/courses/courseSlice";
-import { toggleFavorite } from "../../features/student/studentSlice";
+import { fetchFavorites, toggleFavoriteThunk } from "../../features/student/studentSlice";
 import { useToast } from "../../components/common/Toast";
 import { isFreeCourse } from "../../utils/courseUtils";
 import { QURAN_CATEGORIES } from "../../utils/constants";
@@ -19,7 +19,7 @@ export function StudentCoursesPage() {
   const toast = useToast();
   const [searchParams] = useSearchParams();
   const { items: courses, status, error } = useSelector((state) => state.courses);
-  const favorites = useSelector((state) => state.student.favorites);
+  const { favorites, favoritesStatus } = useSelector((state) => state.student);
 
   const [filters, setFilters] = useState({
     search: searchParams.get("search") || "",
@@ -31,7 +31,8 @@ export function StudentCoursesPage() {
 
   useEffect(() => {
     dispatch(fetchCourses());
-  }, [dispatch]);
+    if (favoritesStatus === "idle") dispatch(fetchFavorites());
+  }, [dispatch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const categories = useMemo(() => QURAN_CATEGORIES.map((name) => ({ name })), []);
 
@@ -66,9 +67,9 @@ export function StudentCoursesPage() {
   }, [courses, filters]);
 
   function handleToggleFavorite(courseId) {
-    dispatch(toggleFavorite(courseId));
+    dispatch(toggleFavoriteThunk(courseId));
     const nowFavorite = !favorites.includes(courseId);
-    toast.info(nowFavorite ? "Added to favorites (demo only — not connected to the backend yet)" : "Removed from favorites (demo only — not connected to the backend yet)");
+    toast.info(nowFavorite ? "Added to favorites" : "Removed from favorites");
   }
 
   return (

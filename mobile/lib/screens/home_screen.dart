@@ -17,7 +17,9 @@ import '../widgets/empty_state.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/section_title.dart';
 import '../widgets/setting_tile.dart';
+import 'certificates_screen.dart';
 import 'course_detail_screen.dart';
+import 'notifications_screen.dart';
 import 'teacher_tools_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -44,6 +46,8 @@ class _HomeScreenState extends State<HomeScreen> {
         await app.fetchTeacherStudents();
       } else {
         await app.fetchWallet();
+        await app.fetchFavorites();
+        await app.fetchNotifications();
       }
     });
   }
@@ -291,7 +295,9 @@ class _HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AppState>().currentUser;
+    final app = context.watch<AppState>();
+    final user = app.currentUser;
+    final unreadCount = app.notifications.where((item) => item['read'] != true).length;
 
     return Row(
       children: [
@@ -305,15 +311,30 @@ class _HomeHeader extends StatelessWidget {
             ],
           ),
         ),
-        IconButton(
-          tooltip: 'Notifications',
-          onPressed: () {},
-          style: IconButton.styleFrom(
-            backgroundColor: AppColors.inputBackground,
-            foregroundColor: AppColors.textDark,
-            fixedSize: const Size(44, 44),
-          ),
-          icon: const Icon(Icons.notifications_none),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              tooltip: 'Notifications',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.inputBackground,
+                foregroundColor: AppColors.textDark,
+                fixedSize: const Size(44, 44),
+              ),
+              icon: const Icon(Icons.notifications_none),
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                right: 4,
+                top: 4,
+                child: Container(
+                  width: 9,
+                  height: 9,
+                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                ),
+              ),
+          ],
         ),
         const SizedBox(width: AppSpacing.xs),
         CircleAvatar(
@@ -721,6 +742,12 @@ class _SettingsTab extends StatelessWidget {
           title: 'Change password',
           subtitle: 'Update your account password',
           onTap: () => _showChangePasswordDialog(context),
+        ),
+        SettingTile(
+          icon: Icons.workspace_premium_outlined,
+          title: 'Certificates',
+          subtitle: 'View certificates you have earned',
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CertificatesScreen())),
         ),
         SettingTile(
           icon: Icons.dark_mode_outlined,

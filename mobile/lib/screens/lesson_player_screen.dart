@@ -1,15 +1,18 @@
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/course_model.dart';
+import '../providers/app_state.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
 class LessonPlayerScreen extends StatefulWidget {
-  const LessonPlayerScreen({super.key, required this.lesson});
+  const LessonPlayerScreen({super.key, required this.courseId, required this.lesson});
 
+  final String courseId;
   final LessonModel lesson;
 
   @override
@@ -21,6 +24,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
   ChewieController? _chewieController;
   String? _error;
   bool _loading = true;
+  bool _completedFired = false;
 
   bool get _isExternalLink {
     final url = widget.lesson.videoUrl.toLowerCase();
@@ -30,6 +34,9 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.lesson.id.isNotEmpty) {
+      context.read<AppState>().markLessonProgress(widget.courseId, widget.lesson.id, completed: false);
+    }
     if (widget.lesson.videoUrl.isEmpty || _isExternalLink) {
       _loading = false;
     } else {
@@ -44,6 +51,7 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
       await controller.initialize();
       if (!mounted) return;
       _videoController = controller;
+      controller.addListener(_handleVideoProgress);
       _chewieController = ChewieController(
         videoPlayerController: controller,
         autoPlay: true,
@@ -66,8 +74,21 @@ class _LessonPlayerScreenState extends State<LessonPlayerScreen> {
     }
   }
 
+  void _handleVideoProgress() {
+    final controller = _videoController;
+    if (controller == null || _completedFired || widget.lesson.id.isEmpty) return;
+    final value = controller.value;
+    if (!value.isInitialized || value.duration == Duration.zero) return;
+    final remaining = value.duration - value.position;
+    if (remaining <= const Duration(seconds: 1)) {
+      _completedFired = true;
+      context.read<AppState>().markLessonProgress(widget.courseId, widget.lesson.id, completed: true);
+    }
+  }
+
   @override
   void dispose() {
+    _videoController?.removeListener(_handleVideoProgress);
     _chewieController?.dispose();
     _videoController?.dispose();
     super.dispose();

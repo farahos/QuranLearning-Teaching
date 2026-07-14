@@ -26,6 +26,9 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? walletSummary;
   final Set<String> favoriteCourseIds = {};
   final Set<String> learningCourseIds = {};
+  final Map<String, Set<String>> completedLessonsByCourse = {};
+  List<Map<String, dynamic>> notifications = [];
+  List<Map<String, dynamic>> certificates = [];
   String? error;
   bool darkMode = false;
 
@@ -268,12 +271,81 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleFavorite(String id) {
-    if (favoriteCourseIds.contains(id)) {
+  Future<void> fetchFavorites() async {
+    final data = await _api.get('/users/me/favorites', token: token);
+    favoriteCourseIds
+      ..clear()
+      ..addAll((data as List).map((e) => (e as Map<String, dynamic>)['_id'] as String));
+    notifyListeners();
+  }
+
+  Future<void> toggleFavorite(String id) async {
+    final wasFavorite = favoriteCourseIds.contains(id);
+    if (wasFavorite) {
       favoriteCourseIds.remove(id);
     } else {
       favoriteCourseIds.add(id);
     }
+    notifyListeners();
+    try {
+      if (wasFavorite) {
+        await _api.delete('/users/me/favorites/$id', token: token);
+      } else {
+        await _api.post('/users/me/favorites/$id', {}, token: token);
+      }
+    } catch (_) {
+      if (wasFavorite) {
+        favoriteCourseIds.add(id);
+      } else {
+        favoriteCourseIds.remove(id);
+      }
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchProgress(String courseId) async {
+    final data = await _api.get('/progress/$courseId', token: token) as Map<String, dynamic>;
+    completedLessonsByCourse[courseId] = Set<String>.from((data['completedLessonIds'] ?? []) as List);
+    notifyListeners();
+  }
+
+  Future<void> markLessonProgress(String courseId, String lessonId, {bool completed = true}) async {
+    final data = await _api.put('/progress/$courseId', {
+      'lessonId': lessonId,
+      'completed': completed,
+    }, token: token) as Map<String, dynamic>;
+    completedLessonsByCourse[courseId] = Set<String>.from((data['completedLessonIds'] ?? []) as List);
+    notifyListeners();
+    if (completed) unawaited(fetchCertificates());
+  }
+
+  Future<void> fetchNotifications() async {
+    final data = await _api.get('/notifications', token: token);
+    notifications = (data as List).map((e) => e as Map<String, dynamic>).toList();
+    notifyListeners();
+  }
+
+  Future<void> markNotificationRead(String id) async {
+    await _api.patch('/notifications/$id/read', {}, token: token);
+    notifications = notifications.map((item) => item['_id'] == id ? {...item, 'read': true} : item).toList();
+    notifyListeners();
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    await _api.patch('/notifications/read-all', {}, token: token);
+    notifications = notifications.map((item) => {...item, 'read': true}).toList();
+    notifyListeners();
+  }
+
+  Future<void> removeNotification(String id) async {
+    await _api.delete('/notifications/$id', token: token);
+    notifications = notifications.where((item) => item['_id'] != id).toList();
+    notifyListeners();
+  }
+
+  Future<void> fetchCertificates() async {
+    final data = await _api.get('/certificates', token: token);
+    certificates = (data as List).map((e) => e as Map<String, dynamic>).toList();
     notifyListeners();
   }
 
@@ -293,6 +365,9 @@ class AppState extends ChangeNotifier {
     adminTransactions = [];
     favoriteCourseIds.clear();
     learningCourseIds.clear();
+    completedLessonsByCourse.clear();
+    notifications = [];
+    certificates = [];
     unawaited(_clearPersistedSession());
     notifyListeners();
   }

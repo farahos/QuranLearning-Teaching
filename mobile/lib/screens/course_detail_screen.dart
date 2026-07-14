@@ -32,6 +32,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   void initState() {
     super.initState();
     _loadReviews();
+    context.read<AppState>().fetchProgress(widget.course.id);
   }
 
   Future<void> _loadReviews() async {
@@ -148,6 +149,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                     children: c.lessons.asMap().entries.map((entry) {
                       final lesson = entry.value;
                       final unlocked = lesson.preview || isEnrolled;
+                      final completed = app.completedLessonsByCourse[c.id]?.contains(lesson.id) ?? false;
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: CircleAvatar(
@@ -160,12 +162,16 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                           style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w900),
                         ),
                         subtitle: Text(
-                          unlocked ? 'Video lesson' : 'Enroll to unlock',
+                          !unlocked ? 'Enroll to unlock' : (completed ? 'Completed' : 'Video lesson'),
                           style: AppTextStyles.small,
                         ),
                         trailing: Icon(
-                          unlocked ? Icons.play_circle_outline : Icons.lock_outline,
-                          color: unlocked ? AppColors.green : AppColors.textMuted,
+                          !unlocked
+                              ? Icons.lock_outline
+                              : completed
+                                  ? Icons.check_circle
+                                  : Icons.play_circle_outline,
+                          color: !unlocked ? AppColors.textMuted : AppColors.green,
                         ),
                         onTap: () {
                           if (!unlocked) {
@@ -176,7 +182,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                           }
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => LessonPlayerScreen(lesson: lesson)),
+                            MaterialPageRoute(builder: (_) => LessonPlayerScreen(courseId: c.id, lesson: lesson)),
                           );
                         },
                       );
