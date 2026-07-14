@@ -10,6 +10,7 @@ export { FormField } from "./FormField";
 export { LoadingSpinner } from "./LoadingSpinner";
 export { Modal } from "./Modal";
 export { Pagination } from "./Pagination";
+export { ProfileImageUpload } from "./ProfileImageUpload";
 export { SearchInput } from "./SearchInput";
 export { Select } from "./Select";
 export { StatCard } from "./StatCard";

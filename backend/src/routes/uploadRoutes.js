@@ -6,8 +6,10 @@ const { auth, onlyRole } = require("../middleware/auth");
 const router = express.Router();
 const videoUploadDir = path.join(__dirname, "..", "..", "uploads", "videos");
 const imageUploadDir = path.join(__dirname, "..", "..", "uploads", "images");
+const documentUploadDir = path.join(__dirname, "..", "..", "uploads", "documents");
 const allowedVideoExtensions = new Set([".mp4", ".mov", ".m4v", ".webm", ".avi", ".mkv"]);
 const allowedImageExtensions = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+const allowedDocumentExtensions = new Set([".pdf", ".ppt", ".pptx"]);
 
 async function saveUpload({ fileName, data, directory, allowedExtensions, maxBytes, urlPrefix, kind }) {
   if (!fileName || !data) {
@@ -73,6 +75,26 @@ router.post("/image", auth, async (req, res) => {
   return res.status(201).json({
     fileName: result.fileName,
     imageUrl: result.fileUrl,
+  });
+});
+
+router.post("/document", auth, onlyRole("teacher"), async (req, res) => {
+  const result = await saveUpload({
+    fileName: req.body.fileName,
+    data: req.body.data,
+    directory: documentUploadDir,
+    allowedExtensions: allowedDocumentExtensions,
+    maxBytes: 25 * 1024 * 1024,
+    urlPrefix: "/uploads/documents",
+    kind: "document",
+  });
+
+  if (result.error) {
+    return res.status(400).json({ message: result.error });
+  }
+  return res.status(201).json({
+    fileName: result.fileName,
+    documentUrl: result.fileUrl,
   });
 });
 

@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { UserCircle } from "lucide-react";
-import { Avatar } from "../../components/common/Avatar";
 import { Card } from "../../components/common/Card";
 import { FormField } from "../../components/common/FormField";
+import { ProfileImageUpload } from "../../components/common/ProfileImageUpload";
 import { Select } from "../../components/common/Select";
 import { Button } from "../../components/common/Button";
 import { useToast } from "../../components/common/Toast";
 import { updateProfile, clearAuthMessage } from "../../features/auth/authSlice";
 import { runValidation, validators, isValidPhone } from "../../utils/validators";
-import { api } from "../../api/client";
 
 const PREFERRED_LANGUAGES = ["Arabic", "English", "Somali", "Urdu", "French"];
 
@@ -28,6 +27,17 @@ export function StudentProfilePage() {
     preferredLanguage: sessionStorage.getItem("qc_preferred_language") || "",
   });
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    setForm({
+      fullName: user?.fullName || "",
+      profileImageUrl: user?.profileImageUrl || "",
+      whatsappNumber: user?.whatsappNumber || "",
+      learningGoal: user?.learningGoal || "",
+      guardianPhone: user?.guardianPhone || "",
+      preferredLanguage: sessionStorage.getItem("qc_preferred_language") || "",
+    });
+  }, [user]);
 
   useEffect(() => {
     if (message) {
@@ -83,18 +93,14 @@ export function StudentProfilePage() {
 
       <Card>
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="flex items-center gap-4">
-            <Avatar src={form.profileImageUrl ? api.mediaUrl(form.profileImageUrl) : ""} name={form.fullName} size="xl" />
-            <div className="flex-1">
-              <FormField
-                label="Profile image URL"
-                value={form.profileImageUrl}
-                onChange={(event) => setField("profileImageUrl", event.target.value)}
-                placeholder="https://..."
-                hint="Paste a link to your profile photo"
-              />
-            </div>
-          </div>
+          <ProfileImageUpload
+            value={form.profileImageUrl}
+            name={form.fullName}
+            onChange={(imageUrl) => setField("profileImageUrl", imageUrl)}
+            onSuccess={toast.success}
+            onError={toast.error}
+            disabled={saving}
+          />
 
           <FormField label="Email" value={user?.email || ""} disabled hint="Email cannot be changed here" />
 

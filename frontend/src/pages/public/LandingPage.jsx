@@ -1,12 +1,11 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import { Award, BookOpen, GraduationCap, Mic, ShieldCheck, Star, Users } from "lucide-react";
+import { Award, BookOpen, GraduationCap, Mic, ShieldCheck } from "lucide-react";
 import { Button } from "../../components/common/Button";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
+import { CourseCard } from "../../components/courses/CourseCard";
 import { fetchCourses } from "../../features/courses/courseSlice";
-import { formatCurrency } from "../../utils/formatters";
-import { isFreeCourse } from "../../utils/courseUtils";
 
 const HIGHLIGHTS = [
   { icon: Mic, title: "Live recitation feedback", text: "Get Makharij and Tajweed corrections directly from your teacher." },
@@ -80,34 +79,16 @@ export function LandingPage() {
           ) : (
             <div className="course-grid">
               {items.slice(0, 6).map((course) => (
-                <article key={course._id} className="card overflow-hidden">
-                  <div className="relative flex h-36 items-center justify-center bg-gradient-to-br from-emerald-50 to-amber-50 text-quran-green">
-                    <BookOpen size={36} />
-                    <span className="absolute right-3 top-3 rounded-md bg-quran-ink/80 px-2 py-1 text-xs font-black text-white">
-                      {isFreeCourse(course) ? "Free" : formatCurrency(course.price)}
-                    </span>
-                  </div>
-                  <div className="space-y-2 p-4">
-                    <p className="text-xs font-black uppercase tracking-wide text-quran-muted">{course.category}</p>
-                    <h3 className="text-base font-black text-quran-text">{course.courseName}</h3>
-                    <p className="line-clamp-2 text-sm text-quran-muted">{course.description}</p>
-                    <div className="flex items-center gap-3 pt-1 text-xs font-bold text-quran-muted">
-                      <span className="flex items-center gap-1">
-                        <Star size={13} /> {course.rating || "New"}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users size={13} /> {course.enrolledStudents?.length || 0}
-                      </span>
-                    </div>
-                    <Link
-                      to="/login"
-                      state={{ from: `/student/courses/${course._id}` }}
-                      className="btn-secondary btn-sm mt-1 w-full justify-center"
-                    >
+                <CourseCard
+                  key={course._id}
+                  course={course}
+                  detailsTo={`/courses/${course._id}`}
+                  footer={
+                    <Link to={`/courses/${course._id}`} className="btn-secondary btn-sm w-full justify-center">
                       View details
                     </Link>
-                  </div>
-                </article>
+                  }
+                />
               ))}
               {!items.length && <p className="text-sm text-quran-muted">No courses published yet — check back soon.</p>}
             </div>

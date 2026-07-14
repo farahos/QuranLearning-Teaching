@@ -1,4 +1,16 @@
 ﻿const Course = require("../models/Course");
+const Review = require("../models/Review");
+
+async function attachRating(course) {
+  const [stats] = await Review.aggregate([
+    { $match: { course: course._id } },
+    { $group: { _id: null, avg: { $avg: "$rating" }, count: { $sum: 1 } } }
+  ]);
+  const obj = course.toObject();
+  obj.ratingAverage = stats ? Number(stats.avg.toFixed(2)) : 0;
+  obj.reviewCount = stats ? stats.count : 0;
+  return obj;
+}
 
 async function createCourse(req, res) {
   const payload = { ...req.body, teacher: req.user.id };
@@ -24,7 +36,19 @@ async function listCourses(req, res) {
   }
 
   const courses = await Course.find(filter).populate("teacher", "fullName introVideoUrl whatsappNumber averageRating totalReviews telegramChannelLink profileImageUrl bio experience");
-  return res.json(courses);
+  const ratingRows = await Review.aggregate([
+    { $match: { course: { $in: courses.map((course) => course._id) } } },
+    { $group: { _id: "$course", avg: { $avg: "$rating" }, count: { $sum: 1 } } }
+  ]);
+  const ratingsByCourse = new Map(ratingRows.map((row) => [row._id.toString(), row]));
+  const result = courses.map((course) => {
+    const obj = course.toObject();
+    const stats = ratingsByCourse.get(course._id.toString());
+    obj.ratingAverage = stats ? Number(stats.avg.toFixed(2)) : 0;
+    obj.reviewCount = stats ? stats.count : 0;
+    return obj;
+  });
+  return res.json(result);
 }
 
 async function updateCourse(req, res) {
@@ -73,7 +97,7 @@ async function getCourse(req, res) {
   if (!course) {
     return res.status(404).json({ message: "Course not found" });
   }
-  return res.json(course);
+  return res.json(await attachRating(course));
 }
 
 module.exports = { createCourse, listCourses, getCourse, updateCourse, deleteCourse, teacherStudents };

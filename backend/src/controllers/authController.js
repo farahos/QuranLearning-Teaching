@@ -71,7 +71,7 @@ async function register(req, res) {
 }
 
 async function login(req, res) {
-  const { email, password } = req.body;
+  const { email, password, platform } = req.body;
   const user = await User.findOne({ email: email.toLowerCase() });
   if (!user) {
     return res.status(404).json({ message: "Email ma jiro" });
@@ -82,6 +82,14 @@ async function login(req, res) {
   }
   if (user.active === false) {
     return res.status(403).json({ message: "Your account is not active yet" });
+  }
+  if (platform === "mobile" && user.role !== "student") {
+    return res.status(403).json({ message: "Teacher and admin accounts must sign in on the web app." });
+  }
+  if (platform === "web" && user.role === "student") {
+    return res.status(403).json({
+      message: "Student accounts must sign in on the mobile app. / Xisaabta ardayda waa in lagu galo app-ka mobile-ka."
+    });
   }
   const token = signToken(user);
   return res.json({ token, user: sanitizeUser(user) });

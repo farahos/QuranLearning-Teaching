@@ -21,7 +21,8 @@ const userSchema = new mongoose.Schema(
     kycStatus: { type: String, enum: ["not_submitted", "pending", "verified", "rejected"], default: "not_submitted" },
     kycDocumentUrl: { type: String },
     averageRating: { type: Number, default: 0 },
-    totalReviews: { type: Number, default: 0 }
+    totalReviews: { type: Number, default: 0 },
+    favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Course" }]
   },
   { timestamps: true }
 );

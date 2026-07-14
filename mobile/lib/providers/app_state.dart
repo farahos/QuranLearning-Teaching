@@ -1,18 +1,29 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/course_model.dart';
+import '../models/review_model.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
+
+const _tokenPrefKey = 'auth_token';
+const _userPrefKey = 'auth_user';
 
 class AppState extends ChangeNotifier {
   final ApiService _api = ApiService();
   String? token;
   UserModel? currentUser;
+  bool sessionLoading = true;
   List<CourseModel> courses = [];
   List<Map<String, dynamic>> teacherStudentCourses = [];
   Map<String, dynamic>? adminDashboard;
   List<Map<String, dynamic>> adminUsers = [];
   List<CourseModel> adminCourses = [];
   List<Map<String, dynamic>> adminTransactions = [];
+  Map<String, dynamic>? walletSummary;
   final Set<String> favoriteCourseIds = {};
   final Set<String> learningCourseIds = {};
   String? error;
@@ -20,29 +31,88 @@ class AppState extends ChangeNotifier {
 
   bool get isLoggedIn => token != null;
 
-  Future<void> register(String name, String email, String password, String role) async {
+  Future<void> restoreSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedToken = prefs.getString(_tokenPrefKey);
+    final savedUserJson = prefs.getString(_userPrefKey);
+    if (savedToken != null && savedUserJson != null) {
+      try {
+        final rawUser = jsonDecode(savedUserJson) as Map<String, dynamic>;
+        final user = UserModel.fromJson(rawUser);
+        if (user.role == 'student') {
+          token = savedToken;
+          currentUser = user;
+        } else {
+          await _clearPersistedSession();
+        }
+      } catch (_) {
+        await _clearPersistedSession();
+      }
+    }
+    sessionLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> register(String name, String email, String password) async {
     final data = await _api.post('/auth/register', {
       'fullName': name,
       'email': email,
       'password': password,
-      'role': role,
+      'role': 'student',
+      'platform': 'mobile',
     });
-    token = data['token'];
-    currentUser = UserModel.fromJson(data['user']);
-    notifyListeners();
+    await _applySession(data);
   }
 
   Future<void> login(String email, String password) async {
-    final data = await _api.post('/auth/login', {'email': email, 'password': password});
-    token = data['token'];
-    currentUser = UserModel.fromJson(data['user']);
+    final data = await _api.post('/auth/login', {
+      'email': email,
+      'password': password,
+      'platform': 'mobile',
+    });
+    await _applySession(data);
+  }
+
+  Future<void> _applySession(Map<String, dynamic> data) async {
+    final rawUser = data['user'] as Map<String, dynamic>;
+    final user = UserModel.fromJson(rawUser);
+    if (user.role != 'student') {
+      throw Exception('This account is not permitted on the mobile app.');
+    }
+    token = data['token'] as String;
+    currentUser = user;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenPrefKey, token!);
+    await prefs.setString(_userPrefKey, jsonEncode(rawUser));
     notifyListeners();
+  }
+
+  Future<void> _clearPersistedSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenPrefKey);
+    await prefs.remove(_userPrefKey);
   }
 
   Future<void> fetchCourses() async {
     final data = await _api.get('/courses');
     courses = (data as List).map((e) => CourseModel.fromJson(e)).toList();
     notifyListeners();
+  }
+
+  Future<CourseModel> fetchCourseById(String id) async {
+    final data = await _api.get('/courses/$id', token: token);
+    final course = CourseModel.fromJson(data as Map<String, dynamic>);
+    final index = courses.indexWhere((existing) => existing.id == id);
+    courses = index >= 0
+        ? [for (final existing in courses) existing.id == id ? course : existing]
+        : [...courses, course];
+    notifyListeners();
+    return course;
+  }
+
+  Future<List<ReviewModel>> fetchTeacherReviews(String teacherId) async {
+    final data = await _api.get('/reviews/teacher/$teacherId');
+    return (data as List).map((e) => ReviewModel.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<void> fetchTeacherStudents() async {
@@ -102,6 +172,12 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> fetchWallet() async {
+    final data = await _api.get('/wallet', token: token);
+    walletSummary = data as Map<String, dynamic>;
+    notifyListeners();
+  }
+
   Future<Map<String, dynamic>> buyCourse(String courseId, String paymentMethod, String phoneNumber) async {
     final data = await _api.post('/wallet/pay-course', {
       'courseId': courseId,
@@ -110,6 +186,7 @@ class AppState extends ChangeNotifier {
     }, token: token);
     learningCourseIds.add(courseId);
     notifyListeners();
+    unawaited(fetchWallet());
     return data;
   }
 
@@ -120,6 +197,7 @@ class AppState extends ChangeNotifier {
       'rating': rating,
       'comment': comment,
     }, token: token);
+    await fetchCourseById(courseId);
   }
 
   Future<void> submitKyc(String docUrl) async {
@@ -142,6 +220,8 @@ class AppState extends ChangeNotifier {
       'profileImageUrl': profileImageUrl,
     }, token: token);
     currentUser = UserModel.fromJson(data);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userPrefKey, jsonEncode(data));
     notifyListeners();
   }
 
@@ -213,6 +293,7 @@ class AppState extends ChangeNotifier {
     adminTransactions = [];
     favoriteCourseIds.clear();
     learningCourseIds.clear();
+    unawaited(_clearPersistedSession());
     notifyListeners();
   }
 }

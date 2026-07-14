@@ -2,7 +2,7 @@ import { api } from "./client";
 
 export const authApi = {
   login(payload) {
-    return api.post("/auth/login", payload, { skipAuth: true });
+    return api.post("/auth/login", { ...payload, platform: "web" }, { skipAuth: true });
   },
   register(payload) {
     return api.post("/auth/register", payload, { skipAuth: true });

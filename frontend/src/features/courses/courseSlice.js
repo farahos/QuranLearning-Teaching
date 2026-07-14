@@ -65,7 +65,16 @@ export const fetchTeacherStudents = createAsyncThunk("courses/teacherStudents", 
 
 function mergeWithExisting(existingItems, incoming, index) {
   const existing = existingItems.find((item) => item._id === getId(incoming));
-  return existing ? { ...existing, ...incoming, _id: getId(incoming) } : withCourseExtras(incoming, index);
+  if (!existing) return withCourseExtras(incoming, index);
+  return {
+    ...existing,
+    ...incoming,
+    _id: getId(incoming),
+    // ratingAverage/reviewCount are always live from the server; never let a
+    // stale cached value from `existing` win once fresher data comes in.
+    rating: typeof incoming?.ratingAverage === "number" ? incoming.ratingAverage : existing.rating,
+    feedbackCount: typeof incoming?.reviewCount === "number" ? incoming.reviewCount : existing.feedbackCount,
+  };
 }
 
 const courseSlice = createSlice({

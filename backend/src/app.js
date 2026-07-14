@@ -12,6 +12,9 @@ const walletRoutes = require("./routes/walletRoutes");
 const kycRoutes = require("./routes/kycRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const progressRoutes = require("./routes/progressRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const certificateRoutes = require("./routes/certificateRoutes");
 
 const app = express();
 
@@ -37,6 +40,9 @@ app.use("/api/wallet", walletRoutes);
 app.use("/api/kyc", kycRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/progress", progressRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/certificates", certificateRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

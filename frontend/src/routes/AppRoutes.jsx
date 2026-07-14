@@ -47,6 +47,14 @@ export function AppRoutes() {
     <Routes>
       <Route element={<PublicLayout />}>
         <Route path="/" element={<LandingPage />} />
+        <Route
+          path="/courses/:courseId"
+          element={
+            <div className="content-container py-8">
+              <StudentCourseDetailsPage />
+            </div>
+          }
+        />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 

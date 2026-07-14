@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Settings, Save } from "lucide-react";
+import { Save, UserCircle } from "lucide-react";
 import { Badge } from "../../components/common/Badge";
 import { Button } from "../../components/common/Button";
 import { Card } from "../../components/common/Card";
 import { FormField } from "../../components/common/FormField";
+import { ProfileImageUpload } from "../../components/common/ProfileImageUpload";
 import { Select } from "../../components/common/Select";
 import { useToast } from "../../components/common/Toast";
 import { updateSettingsLocal, clearAdminMessage } from "../../features/admin/adminSlice";
+import { updateProfile, clearAuthMessage } from "../../features/auth/authSlice";
 
 function ToggleRow({ label, hint, checked, onChange }) {
   return (
@@ -24,23 +26,57 @@ function ToggleRow({ label, hint, checked, onChange }) {
 export function AdminSettingsPage() {
   const dispatch = useDispatch();
   const toast = useToast();
-  const { settings, message } = useSelector((state) => state.admin);
+  const { settings, message: adminMessage } = useSelector((state) => state.admin);
+  const { user, status: authStatus, error: authError, message: authMessage } = useSelector((state) => state.auth);
   const [form, setForm] = useState(settings);
+  const [profileForm, setProfileForm] = useState({
+    fullName: user?.fullName || "",
+    profileImageUrl: user?.profileImageUrl || "",
+    whatsappNumber: user?.whatsappNumber || "",
+  });
 
   useEffect(() => {
-    if (message) {
-      toast.success(message);
+    setProfileForm({
+      fullName: user?.fullName || "",
+      profileImageUrl: user?.profileImageUrl || "",
+      whatsappNumber: user?.whatsappNumber || "",
+    });
+  }, [user]);
+
+  useEffect(() => {
+    if (adminMessage) {
+      toast.success(adminMessage);
       dispatch(clearAdminMessage());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [message]);
+  }, [adminMessage]);
+
+  useEffect(() => {
+    if (authMessage) {
+      toast.success(authMessage);
+      dispatch(clearAuthMessage());
+    }
+    if (authError) {
+      toast.error(authError);
+      dispatch(clearAuthMessage());
+    }
+  }, [authMessage, authError, toast, dispatch]);
 
   function setField(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  function setProfileField(key, value) {
+    setProfileForm((current) => ({ ...current, [key]: value }));
+  }
+
   function handleSave() {
     dispatch(updateSettingsLocal(form));
+  }
+
+  function handleProfileSave(event) {
+    event.preventDefault();
+    dispatch(updateProfile(profileForm));
   }
 
   return (
@@ -56,6 +92,26 @@ export function AdminSettingsPage() {
       </div>
 
       <Badge tone="amber">Demo only — GET/PUT /api/admin/settings does not exist yet. Changes are kept in this session's Redux store only.</Badge>
+
+      <Card title="Admin profile" subtitle="Manage your account photo and basic details">
+        <form onSubmit={handleProfileSave} className="space-y-4">
+          <ProfileImageUpload
+            value={profileForm.profileImageUrl}
+            name={profileForm.fullName}
+            onChange={(imageUrl) => setProfileField("profileImageUrl", imageUrl)}
+            onSuccess={toast.success}
+            onError={toast.error}
+            disabled={authStatus === "loading"}
+          />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField label="Full name" required value={profileForm.fullName} onChange={(e) => setProfileField("fullName", e.target.value)} />
+            <FormField label="WhatsApp number" value={profileForm.whatsappNumber} onChange={(e) => setProfileField("whatsappNumber", e.target.value)} />
+          </div>
+          <Button type="submit" variant="primary" icon={UserCircle} loading={authStatus === "loading"}>
+            Save profile
+          </Button>
+        </form>
+      </Card>
 
       <Card title="General" subtitle="Platform identity and support contact">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

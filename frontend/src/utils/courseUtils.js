@@ -79,11 +79,13 @@ export function withCourseExtras(course, index = 0) {
     juz: template.juz,
     tajweedLevel: template.tajweedLevel,
     featured: false,
-    rating: 0,
-    feedbackCount: 0,
     ...course,
     _id: getId(course) || course?._id,
     enrolledStudents: course?.enrolledStudents || [],
+    // ratingAverage/reviewCount are computed live by the backend from real
+    // Review documents; prefer them over the demo placeholders above.
+    rating: typeof course?.ratingAverage === "number" ? course.ratingAverage : 0,
+    feedbackCount: typeof course?.reviewCount === "number" ? course.reviewCount : 0,
   };
 }
 

@@ -9,6 +9,7 @@ import '../models/course_model.dart';
 import '../providers/app_state.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/form_validators.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/course_card.dart';
@@ -41,6 +42,8 @@ class _HomeScreenState extends State<HomeScreen> {
       await app.fetchCourses();
       if (app.currentUser?.role == 'teacher') {
         await app.fetchTeacherStudents();
+      } else {
+        await app.fetchWallet();
       }
     });
   }
@@ -704,7 +707,9 @@ class _SettingsTab extends StatelessWidget {
           ),
         ),
         Center(child: Text(user?.role ?? 'student', style: AppTextStyles.body)),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
+        _WalletBalanceCard(walletSummary: app.walletSummary),
+        const SizedBox(height: AppSpacing.lg),
         SettingTile(
           icon: Icons.edit_outlined,
           title: 'Edit profile',
@@ -792,37 +797,106 @@ class _SettingsTab extends StatelessWidget {
 
   Future<void> _showChangePasswordDialog(BuildContext context) async {
     final app = context.read<AppState>();
+    final formKey = GlobalKey<FormState>();
     final current = TextEditingController();
     final next = TextEditingController();
+    String? submitError;
 
     await showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Change password'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: current, obscureText: true, decoration: const InputDecoration(labelText: 'Current password')),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(controller: next, obscureText: true, decoration: const InputDecoration(labelText: 'New password')),
+      builder: (_) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Change password'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: current,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Current password'),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                TextFormField(
+                  controller: next,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'New password'),
+                  validator: FormValidators.password,
+                ),
+                if (submitError != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(submitError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () async {
+                if (current.text.isEmpty) {
+                  setDialogState(() => submitError = 'Current password is required');
+                  return;
+                }
+                if (!(formKey.currentState?.validate() ?? false)) return;
+                try {
+                  await app.changePassword(current.text, next.text);
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed')));
+                } catch (error) {
+                  setDialogState(() => submitError = error.toString());
+                }
+              },
+              child: const Text('Save'),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () async {
-              await app.changePassword(current.text, next.text);
-              if (!context.mounted) return;
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password changed')));
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
     current.dispose();
     next.dispose();
+  }
+}
+
+class _WalletBalanceCard extends StatelessWidget {
+  const _WalletBalanceCard({required this.walletSummary});
+
+  final Map<String, dynamic>? walletSummary;
+
+  @override
+  Widget build(BuildContext context) {
+    final wallet = walletSummary?['wallet'] as Map<String, dynamic>?;
+    final balance = (wallet?['walletBalance'] ?? 0).toDouble();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(color: AppColors.greenSoft, borderRadius: BorderRadius.circular(14)),
+            child: const Icon(Icons.account_balance_wallet_outlined, color: AppColors.green),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Wallet balance', style: AppTextStyles.small),
+                Text(
+                  '\$${balance.toStringAsFixed(2)}',
+                  style: const TextStyle(color: AppColors.textDark, fontSize: 18, fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

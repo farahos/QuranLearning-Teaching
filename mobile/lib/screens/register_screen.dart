@@ -7,7 +7,6 @@ import '../utils/form_validators.dart';
 import '../widgets/auth_page_shell.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/primary_button.dart';
-import '../widgets/role_selector.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -23,7 +22,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  String _role = 'student';
   bool _loading = false;
 
   @override
@@ -43,7 +41,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             _nameController.text.trim(),
             _emailController.text.trim(),
             _passwordController.text.trim(),
-            _role,
           );
     } catch (error) {
       if (mounted) {
@@ -65,11 +62,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            RoleSelector(
-              value: _role,
-              onChanged: (value) => setState(() => _role = value),
-            ),
-            const SizedBox(height: AppSpacing.md),
             CustomTextField(
               controller: _nameController,
               hintText: 'Full name',

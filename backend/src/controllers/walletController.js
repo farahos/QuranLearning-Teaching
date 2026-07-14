@@ -1,6 +1,7 @@
 const Transaction = require("../models/Transaction");
 const User = require("../models/User");
 const Course = require("../models/Course");
+const Notification = require("../models/Notification");
 const { purchaseWithMobileMoney } = require("../services/waafiPayService");
 
 const PAYMENT_METHODS = new Set(["EVC Plus", "Zaad", "Sahal"]);
@@ -111,6 +112,19 @@ async function payCourse(req, res) {
     amount: adminCommission,
     status: "completed",
     note: `Commission from ${course.courseName}`,
+  });
+
+  await Notification.create({
+    user: student._id,
+    type: "enrollment",
+    message: `You're enrolled in ${course.courseName}`,
+    relatedCourse: course._id,
+  });
+  await Notification.create({
+    user: teacher._id,
+    type: "enrollment",
+    message: `A new student enrolled in ${course.courseName}`,
+    relatedCourse: course._id,
   });
 
   return res.json({

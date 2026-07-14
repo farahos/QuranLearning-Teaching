@@ -17,6 +17,11 @@ router.post(
   register
 );
 
-router.post("/login", [body("email").isEmail(), body("password").notEmpty()], validate, login);
+router.post(
+  "/login",
+  [body("email").isEmail(), body("password").notEmpty(), body("platform").optional().isIn(["mobile", "web"])],
+  validate,
+  login
+);
 
 module.exports = router;

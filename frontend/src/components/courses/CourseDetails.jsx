@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, CheckCircle2, Clock, FileText, Layers, Lock, PlayCircle, Star, Users } from "lucide-react";
 import { Avatar } from "../common/Avatar";
 import { Badge } from "../common/Badge";
@@ -5,8 +6,42 @@ import { api } from "../../api/client";
 import { formatCurrency } from "../../utils/formatters";
 import { isFreeCourse } from "../../utils/courseUtils";
 
-export function CourseDetails({ course, headerActions, ratingsSection }) {
+export function CourseDetails({ course, headerActions, ratingsSection, canAccessPaidContent = false, teacherPreviewMode = false }) {
   const teacher = course.teacher || {};
+  const playableVideos = useMemo(() => {
+    const videos = [];
+    const allowFullAccess = canAccessPaidContent || teacherPreviewMode;
+    if (course.introVideoUrl) {
+      videos.push({
+        id: "intro-video",
+        title: "Intro video",
+        videoUrl: course.introVideoUrl,
+        description: "Course introduction",
+      });
+    }
+
+    (course.playlists || []).forEach((playlist) => {
+      (playlist.sections || []).forEach((section) => {
+        if (!section.videoUrl) return;
+        if (!allowFullAccess && !section.preview) return;
+        videos.push({
+          id: section.id,
+          title: section.title,
+          videoUrl: section.videoUrl,
+          description: playlist.title,
+        });
+      });
+    });
+
+    return videos;
+  }, [canAccessPaidContent, course.introVideoUrl, course.playlists, teacherPreviewMode]);
+  const [selectedVideoId, setSelectedVideoId] = useState(playableVideos[0]?.id || "");
+  const selectedVideo = playableVideos.find((video) => video.id === selectedVideoId) || playableVideos[0];
+  const allowFullAccess = canAccessPaidContent || teacherPreviewMode;
+
+  useEffect(() => {
+    setSelectedVideoId(playableVideos[0]?.id || "");
+  }, [course._id, playableVideos]);
 
   return (
     <div className="space-y-6">
@@ -49,6 +84,40 @@ export function CourseDetails({ course, headerActions, ratingsSection }) {
         </div>
       </div>
 
+      {selectedVideo && (
+        <div className="card-pad">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-black text-quran-text">Video preview</h2>
+              <p className="text-sm text-quran-muted">{selectedVideo.title}</p>
+            </div>
+            <Badge tone="green">{teacherPreviewMode ? "Teacher test mode" : "Free preview"}</Badge>
+          </div>
+          <video key={selectedVideo.videoUrl} controls className="mt-4 aspect-video w-full rounded-lg bg-quran-ink" preload="metadata">
+            <source src={api.mediaUrl(selectedVideo.videoUrl)} />
+            Your browser does not support the video tag.
+          </video>
+          {playableVideos.length > 1 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {playableVideos.map((video) => (
+                <button
+                  key={video.id}
+                  type="button"
+                  onClick={() => setSelectedVideoId(video.id)}
+                  className={`btn-sm rounded-lg border font-bold transition-colors ${
+                    selectedVideo.id === video.id
+                      ? "border-quran-green bg-quran-green text-white"
+                      : "border-quran-line bg-white text-quran-text hover:border-quran-green hover:text-quran-green"
+                  }`}
+                >
+                  {video.title}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="two-col">
         <div className="card-pad">
           <h2 className="text-base font-black text-quran-text">Teacher</h2>
@@ -87,14 +156,30 @@ export function CourseDetails({ course, headerActions, ratingsSection }) {
                 {playlist.locked && <Badge tone="amber" icon={Lock}>Locked</Badge>}
               </div>
               <ul className="divide-y divide-quran-line">
-                {(playlist.sections || []).map((section) => (
-                  <li key={section.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                    <span className="flex items-center gap-2 text-quran-text">
-                      <PlayCircle size={15} className="text-quran-muted" /> {section.title}
-                    </span>
-                    {section.preview ? <Badge tone="green">Free preview</Badge> : section.locked ? <Lock size={14} className="text-quran-muted" /> : null}
-                  </li>
-                ))}
+                {(playlist.sections || []).map((section) => {
+                  const canPlay = !!section.videoUrl && (allowFullAccess || section.preview);
+                  return (
+                    <li key={section.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                      <span className="flex items-center gap-2 text-quran-text">
+                        {canPlay ? <PlayCircle size={15} className="text-quran-muted" /> : <Lock size={15} className="text-quran-muted" />} {section.title}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        {canPlay ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedVideoId(section.id)}
+                            className="text-xs font-black text-quran-green hover:underline"
+                          >
+                            Play
+                          </button>
+                        ) : !allowFullAccess ? (
+                          <span className="text-xs font-bold text-quran-muted">Enroll to unlock</span>
+                        ) : null}
+                        {section.preview ? <Badge tone="green">Free preview</Badge> : section.locked || !canPlay ? <Lock size={14} className="text-quran-muted" /> : null}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

@@ -1,6 +1,7 @@
 const Course = require("../models/Course");
 const Transaction = require("../models/Transaction");
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 
 function sanitizeUser(user) {
   const obj = user.toObject ? user.toObject() : user;
@@ -62,6 +63,15 @@ async function updateUser(req, res) {
 
   const user = await User.findByIdAndUpdate(req.params.id, { $set: updates }, { new: true, runValidators: true });
   if (!user) return res.status(404).json({ message: "User not found" });
+
+  if (updates.kycStatus === "verified" || updates.kycStatus === "rejected") {
+    await Notification.create({
+      user: user._id,
+      type: "kyc",
+      message: updates.kycStatus === "verified" ? "Your KYC has been approved" : "Your KYC submission was rejected",
+    });
+  }
+
   return res.json(sanitizeUser(user));
 }
 

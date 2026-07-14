@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/course_model.dart';
+import '../models/review_model.dart';
 import '../providers/app_state.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/section_title.dart';
+import 'lesson_player_screen.dart';
 
 class CourseDetailScreen extends StatefulWidget {
   const CourseDetailScreen({super.key, required this.course});
@@ -23,6 +25,29 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   final paymentPhone = TextEditingController();
   String paymentMethod = 'EVC Plus';
   int rating = 5;
+  List<ReviewModel> _courseReviews = [];
+  bool _reviewsLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews() async {
+    try {
+      final app = context.read<AppState>();
+      final reviews = await app.fetchTeacherReviews(widget.course.teacher.id);
+      if (!mounted) return;
+      setState(() {
+        _courseReviews = reviews.where((review) => review.courseId == widget.course.id).toList();
+        _reviewsLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _reviewsLoading = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -33,11 +58,13 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final app = context.read<AppState>();
-    final c = widget.course;
+    final app = context.watch<AppState>();
+    final c = app.courses.firstWhere((course) => course.id == widget.course.id, orElse: () => widget.course);
     final teacher = c.teacher;
     final teacherExperience = (teacher.experience ?? teacher.bio ?? '').trim();
     final ratingText = teacher.averageRating == 0 ? 'New' : teacher.averageRating.toStringAsFixed(1);
+    final courseRatingText = c.ratingAverage == 0 ? 'New' : c.ratingAverage.toStringAsFixed(1);
+    final isEnrolled = c.isEnrolledStudent(app.currentUser?.id) || app.learningCourseIds.contains(c.id);
 
     return Scaffold(
       backgroundColor: AppColors.scaffold,
@@ -119,6 +146,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 ? const Text('Lessons will appear here after the instructor adds them.', style: AppTextStyles.body)
                 : Column(
                     children: c.lessons.asMap().entries.map((entry) {
+                      final lesson = entry.value;
+                      final unlocked = lesson.preview || isEnrolled;
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: CircleAvatar(
@@ -127,14 +156,85 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                           child: Text('${entry.key + 1}'),
                         ),
                         title: Text(
-                          entry.value.title,
+                          lesson.title,
                           style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w900),
                         ),
-                        subtitle: const Text('Video lesson', style: AppTextStyles.small),
-                        trailing: const Icon(Icons.lock_outline, color: AppColors.textMuted),
+                        subtitle: Text(
+                          unlocked ? 'Video lesson' : 'Enroll to unlock',
+                          style: AppTextStyles.small,
+                        ),
+                        trailing: Icon(
+                          unlocked ? Icons.play_circle_outline : Icons.lock_outline,
+                          color: unlocked ? AppColors.green : AppColors.textMuted,
+                        ),
+                        onTap: () {
+                          if (!unlocked) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Buy this course to unlock its lessons.')),
+                            );
+                            return;
+                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => LessonPlayerScreen(lesson: lesson)),
+                          );
+                        },
                       );
                     }).toList(),
                   ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _InfoCard(
+            title: 'Ratings & Reviews',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.star_rounded, color: AppColors.warning, size: 20),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$courseRatingText  •  ${c.reviewCount} ${c.reviewCount == 1 ? 'review' : 'reviews'}',
+                      style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w900),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                if (_reviewsLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_courseReviews.isEmpty)
+                  const Text('No reviews yet for this course.', style: AppTextStyles.small)
+                else
+                  ..._courseReviews.map((review) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(review.studentName, style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w800)),
+                                const SizedBox(width: 6),
+                                Row(
+                                  children: List.generate(
+                                    5,
+                                    (index) => Icon(
+                                      index < review.rating ? Icons.star_rounded : Icons.star_border_rounded,
+                                      color: AppColors.warning,
+                                      size: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (review.comment.isNotEmpty) Text(review.comment, style: AppTextStyles.small),
+                          ],
+                        ),
+                      )),
+              ],
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           _ReviewCard(
@@ -142,9 +242,16 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
             comment: comment,
             onRatingChanged: (value) => setState(() => rating = value ?? 5),
             onSubmit: () async {
-              await app.addReview(c.id, teacher.id, rating, comment.text.trim());
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted')));
+              try {
+                await app.addReview(c.id, teacher.id, rating, comment.text.trim());
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted')));
+                comment.clear();
+                await _loadReviews();
+              } catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+              }
             },
           ),
         ],

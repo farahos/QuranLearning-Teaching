@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, Clock, Layers, Star, Users } from "lucide-react";
 import { Badge, statusTone } from "../common/Badge";
 import { formatCurrency } from "../../utils/formatters";
@@ -6,9 +6,26 @@ import { isFreeCourse } from "../../utils/courseUtils";
 import { api } from "../../api/client";
 import { COURSE_STATUS_LABELS } from "../../utils/constants";
 
-export function CourseCard({ course, footer, showStatusBadge = false, detailsTo }) {
+export function CourseCard({ course, footer, showStatusBadge = false, detailsTo, onClick }) {
+  const navigate = useNavigate();
+  const cardClick = onClick || (detailsTo ? () => navigate(detailsTo) : null);
+
+  function handleKeyDown(event) {
+    if (!cardClick) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      cardClick();
+    }
+  }
+
   return (
-    <article className="card flex flex-col overflow-hidden">
+    <article
+      className={`card flex flex-col overflow-hidden ${cardClick ? "cursor-pointer transition hover:-translate-y-0.5 hover:shadow-lg" : ""}`}
+      onClick={cardClick || undefined}
+      onKeyDown={handleKeyDown}
+      role={cardClick ? "button" : undefined}
+      tabIndex={cardClick ? 0 : undefined}
+    >
       <div className="relative flex h-40 items-center justify-center bg-gradient-to-br from-emerald-50 to-amber-50 text-quran-green">
         {course.coverImageUrl ? (
           <img
@@ -35,7 +52,7 @@ export function CourseCard({ course, footer, showStatusBadge = false, detailsTo 
         <div>
           <p className="text-xs font-black uppercase tracking-wide text-quran-muted">{course.category}</p>
           {detailsTo ? (
-            <Link to={detailsTo} className="mt-1 block text-base font-black text-quran-text hover:text-quran-green">
+            <Link to={detailsTo} className="mt-1 block text-base font-black text-quran-text hover:text-quran-green" onClick={(event) => event.stopPropagation()}>
               {course.courseName}
             </Link>
           ) : (
@@ -61,7 +78,11 @@ export function CourseCard({ course, footer, showStatusBadge = false, detailsTo 
             </span>
           )}
         </div>
-        {footer && <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">{footer}</div>}
+        {footer && (
+          <div className="mt-auto flex flex-wrap items-center gap-2 pt-1" onClick={(event) => event.stopPropagation()}>
+            {footer}
+          </div>
+        )}
       </div>
     </article>
   );

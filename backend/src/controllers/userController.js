@@ -37,6 +37,29 @@ async function changePassword(req, res) {
   return res.json({ message: "Password changed" });
 }
 
+async function addFavorite(req, res) {
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { $addToSet: { favorites: req.params.courseId } },
+    { new: true }
+  ).select("favorites");
+  return res.json(user.favorites);
+}
+
+async function removeFavorite(req, res) {
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { $pull: { favorites: req.params.courseId } },
+    { new: true }
+  ).select("favorites");
+  return res.json(user.favorites);
+}
+
+async function listFavorites(req, res) {
+  const user = await User.findById(req.user.id).populate("favorites");
+  return res.json(user.favorites);
+}
+
 async function updateTeacherProfile(req, res) {
   const updates = req.body;
   const user = await User.findOneAndUpdate(
@@ -52,4 +75,12 @@ async function updateTeacherProfile(req, res) {
   return res.json(user);
 }
 
-module.exports = { getMe, updateProfile, changePassword, updateTeacherProfile };
+module.exports = {
+  getMe,
+  updateProfile,
+  changePassword,
+  updateTeacherProfile,
+  addFavorite,
+  removeFavorite,
+  listFavorites
+};

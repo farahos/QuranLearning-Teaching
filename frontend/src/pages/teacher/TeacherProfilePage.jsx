@@ -5,6 +5,7 @@ import { Badge, statusTone } from "../../components/common/Badge";
 import { Button } from "../../components/common/Button";
 import { Card } from "../../components/common/Card";
 import { FormField } from "../../components/common/FormField";
+import { ProfileImageUpload } from "../../components/common/ProfileImageUpload";
 import { useToast } from "../../components/common/Toast";
 import { clearAuthMessage, updateTeacherProfile } from "../../features/auth/authSlice";
 import { submitTeacherKyc } from "../../features/teacher/teacherSlice";
@@ -32,6 +33,19 @@ export function TeacherProfilePage() {
     kycDocumentUrl: user?.kycDocumentUrl || "",
   });
   const [kycDraftUrl, setKycDraftUrl] = useState("");
+
+  useEffect(() => {
+    setForm({
+      fullName: user?.fullName || "",
+      profileImageUrl: user?.profileImageUrl || "",
+      whatsappNumber: user?.whatsappNumber || "",
+      bio: user?.bio || "",
+      experience: user?.experience || "",
+      telegramChannelLink: user?.telegramChannelLink || "",
+      introVideoUrl: user?.introVideoUrl || "",
+      kycDocumentUrl: user?.kycDocumentUrl || "",
+    });
+  }, [user]);
 
   useEffect(() => {
     if (authMessage) {
@@ -81,7 +95,14 @@ export function TeacherProfilePage() {
         <Card title="Profile details">
           <form onSubmit={handleSubmit} className="space-y-4">
             <FormField label="Full name" required value={form.fullName} onChange={(e) => set("fullName", e.target.value)} />
-            <FormField label="Profile image URL" value={form.profileImageUrl} onChange={(e) => set("profileImageUrl", e.target.value)} />
+            <ProfileImageUpload
+              value={form.profileImageUrl}
+              name={form.fullName}
+              onChange={(imageUrl) => set("profileImageUrl", imageUrl)}
+              onSuccess={toast.success}
+              onError={toast.error}
+              disabled={authStatus === "loading"}
+            />
             <FormField label="WhatsApp number" value={form.whatsappNumber} onChange={(e) => set("whatsappNumber", e.target.value)} />
             <FormField as="textarea" label="Bio" value={form.bio} onChange={(e) => set("bio", e.target.value)} />
             <FormField label="Experience" value={form.experience} placeholder="e.g. 5 years teaching Tajweed" onChange={(e) => set("experience", e.target.value)} />

@@ -58,6 +58,13 @@ export function StudentCourseDetailsPage() {
     }
   }, [payment.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (reviewStatus === "succeeded") {
+      toast.success("Rating submitted");
+      dispatch(fetchCourseById(courseId));
+    }
+  }, [reviewStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (status === "loading" && !course) {
     return (
       <section className="space-y-6">
@@ -86,12 +93,20 @@ export function StudentCourseDetailsPage() {
   const free = isFreeCourse(course);
 
   function handleEnrollFree() {
+    if (!user) {
+      navigate("/login", { state: { from: `/student/courses/${course._id}` } });
+      return;
+    }
     dispatch(enrollFree(course._id));
     toast.info("Enrolled (demo only — free enrollment is not connected to the backend yet)");
     navigate(`/student/learning/${course._id}`);
   }
 
   function openPayModal() {
+    if (!user) {
+      navigate("/login", { state: { from: `/student/courses/${course._id}` } });
+      return;
+    }
     setPhoneNumber(user?.whatsappNumber || "");
     setPhoneError("");
     dispatch(resetPaymentState());
@@ -120,16 +135,18 @@ export function StudentCourseDetailsPage() {
 
   const headerActions = (
     <>
-      <Button
-        variant={isFavorite ? "primary" : "secondary"}
-        icon={Heart}
-        onClick={() => {
-          dispatch(toggleFavorite(course._id));
-          toast.info(isFavorite ? "Removed from favorites (demo only — not connected to the backend yet)" : "Added to favorites (demo only — not connected to the backend yet)");
-        }}
-      >
-        {isFavorite ? "Favorited" : "Favorite"}
-      </Button>
+      {user && (
+        <Button
+          variant={isFavorite ? "primary" : "secondary"}
+          icon={Heart}
+          onClick={() => {
+            dispatch(toggleFavorite(course._id));
+            toast.info(isFavorite ? "Removed from favorites (demo only — not connected to the backend yet)" : "Added to favorites (demo only — not connected to the backend yet)");
+          }}
+        >
+          {isFavorite ? "Favorited" : "Favorite"}
+        </Button>
+      )}
       {isEnrolled ? (
         <Button variant="primary" icon={PlayCircle} onClick={() => navigate(`/student/learning/${course._id}`)}>
           Continue learning
@@ -148,7 +165,9 @@ export function StudentCourseDetailsPage() {
 
   const ratingsSection = (
     <Card title="Ratings & reviews">
-      {!isEnrolled ? (
+      {!user ? (
+        <p className="text-sm text-quran-muted">Login after enrolling to leave a rating.</p>
+      ) : !isEnrolled ? (
         <p className="text-sm text-quran-muted">You can rate a course once you've enrolled.</p>
       ) : (
         <div className="space-y-4">

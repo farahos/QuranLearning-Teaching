@@ -139,6 +139,14 @@ export function TeacherCourseEditorPage() {
       .catch((message) => toast.error(message || "Could not save course videos"));
   }
 
+  function persistCourseMaterials() {
+    if (!courseId || !course) return;
+    dispatch(updateCourseThunk({ id: courseId, payload: { materials: course.materials || [] } }))
+      .unwrap()
+      .then(() => toast.success("Course materials saved"))
+      .catch((message) => toast.error(message || "Could not save course materials"));
+  }
+
   if (courseId && !course && fetchStatus === "loading") {
     return (
       <section className="space-y-6">
@@ -224,6 +232,13 @@ export function TeacherCourseEditorPage() {
           subtitle="Attach downloadable PDFs, slides and more"
           action={<Badge tone="amber">Session only — not saved to server</Badge>}
         >
+          {courseId && (
+            <div className="mb-4 flex justify-end">
+              <Button variant="primary" size="sm" onClick={persistCourseMaterials} loading={saveStatus === "loading"}>
+                Save materials
+              </Button>
+            </div>
+          )}
           <MaterialManager materials={materials} sectionOptions={sectionOptions} onChange={handleMaterialsChange} />
         </Card>
       )}

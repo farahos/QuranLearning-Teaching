@@ -20,6 +20,18 @@ const courseSchema = new mongoose.Schema(
         preview: { type: Boolean, default: false }
       }
     ],
+    materials: [
+      {
+        id: { type: String },
+        title: { type: String, required: true },
+        fileType: { type: String, default: "PDF" },
+        fileUrl: { type: String, required: true },
+        fileSize: { type: String, default: "" },
+        sectionId: { type: String, default: null },
+        downloadAllowed: { type: Boolean, default: true },
+        disabled: { type: Boolean, default: false }
+      }
+    ],
     enrolledStudents: [
       {
         student: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },

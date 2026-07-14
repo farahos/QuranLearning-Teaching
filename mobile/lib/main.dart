@@ -9,7 +9,7 @@ import 'theme/app_theme.dart';
 void main() {
   runApp(
     ChangeNotifierProvider(
-      create: (_) => AppState(),
+      create: (_) => AppState()..restoreSession(),
       child: const QuranConnectApp(),
     ),
   );
@@ -28,6 +28,9 @@ class QuranConnectApp extends StatelessWidget {
       themeMode: context.watch<AppState>().darkMode ? ThemeMode.dark : ThemeMode.light,
       home: Consumer<AppState>(
         builder: (_, state, __) {
+          if (state.sessionLoading) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
           if (!state.isLoggedIn) return const AuthScreen();
           if (state.currentUser?.role == 'admin') return const AdminScreen();
           return const HomeScreen();

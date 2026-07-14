@@ -99,6 +99,7 @@ export function TeacherCoursesPage() {
               key={course._id}
               course={course}
               showStatusBadge
+              onClick={() => setPreviewCourse(course)}
               footer={
                 <>
                   <Badge tone={statusTone(course.status)}>{COURSE_STATUS_LABELS[course.status] || course.status}</Badge>
