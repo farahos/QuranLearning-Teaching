@@ -36,7 +36,7 @@ export function StudentFavoritesPage() {
         <p className="page-subtitle">Courses you've saved for later.</p>
       </div>
 
-      {status === "loading" && !courses.length ? (
+      {(status === "loading" && !courses.length) || favoritesStatus === "loading" ? (
         <LoadingSpinner label="Loading favorites..." />
       ) : status === "failed" && !courses.length ? (
         <ErrorState message={error} onRetry={() => dispatch(fetchCourses())} />

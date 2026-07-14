@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Bell, CheckCheck } from "lucide-react";
-import { markAllNotificationsRead, markNotificationRead } from "../../features/notifications/notificationSlice";
+import { fetchNotifications, markAllNotificationsRead, markNotificationRead } from "../../features/notifications/notificationSlice";
 import { formatRelativeTime } from "../../utils/formatters";
 
 export function NotificationMenu() {
@@ -10,6 +10,10 @@ export function NotificationMenu() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
   const unreadCount = items.filter((item) => !item.read).length;
+
+  useEffect(() => {
+    dispatch(fetchNotifications());
+  }, [dispatch]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -47,16 +51,15 @@ export function NotificationMenu() {
             {items.length === 0 && <p className="px-2 py-4 text-center text-sm text-quran-muted">You're all caught up.</p>}
             {items.slice(0, 8).map((item) => (
               <button
-                key={item.id}
+                key={item._id}
                 type="button"
-                onClick={() => dispatch(markNotificationRead(item.id))}
+                onClick={() => dispatch(markNotificationRead(item._id))}
                 className={`block w-full rounded-lg px-2 py-2 text-left text-sm hover:bg-quran-soft ${item.read ? "opacity-70" : ""}`}
               >
                 <span className="flex items-center gap-2 font-bold text-quran-text">
                   {!item.read && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-quran-green" aria-hidden="true" />}
-                  {item.title}
+                  {item.message}
                 </span>
-                <span className="mt-0.5 block text-xs text-quran-muted">{item.message}</span>
                 <span className="mt-0.5 block text-[11px] text-quran-muted/70">{formatRelativeTime(item.createdAt)}</span>
               </button>
             ))}

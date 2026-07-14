@@ -1,9 +1,8 @@
 import { Link } from "react-router-dom";
 import { Award, PlayCircle } from "lucide-react";
-import { certificateUnlocked } from "../../utils/courseUtils";
 
 export function CourseProgress({ course, progressPercent = 0, completedCount = 0, totalCount = 0 }) {
-  const unlocked = certificateUnlocked(course, progressPercent);
+  const unlocked = totalCount > 0 && progressPercent >= 100;
 
   return (
     <div className="card-pad">
@@ -23,7 +22,7 @@ export function CourseProgress({ course, progressPercent = 0, completedCount = 0
         <Link to={`/student/learning/${course._id}`} className="btn-secondary btn-sm">
           <PlayCircle size={14} /> Continue
         </Link>
-        {course.certificateEnabled && (
+        {totalCount > 0 && (
           <span className={`flex items-center gap-1 text-xs font-bold ${unlocked ? "text-quran-green" : "text-quran-muted"}`}>
             <Award size={13} /> {unlocked ? "Certificate ready" : "Certificate locked"}
           </span>

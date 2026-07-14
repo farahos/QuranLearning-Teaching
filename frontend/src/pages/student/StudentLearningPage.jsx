@@ -23,7 +23,7 @@ import { Textarea } from "../../components/common/Textarea";
 import { FormField } from "../../components/common/FormField";
 import { useToast } from "../../components/common/Toast";
 import { fetchCourseById } from "../../features/courses/courseSlice";
-import { markSectionComplete, saveLessonNote, setLastAccessed, submitRecitation } from "../../features/student/studentSlice";
+import { completeLesson, fetchProgress, saveLessonNote, submitRecitation } from "../../features/student/studentSlice";
 import { getId, countLessons } from "../../utils/courseUtils";
 import { formatDateTime } from "../../utils/formatters";
 import { api } from "../../api/client";
@@ -57,6 +57,10 @@ export function StudentLearningPage() {
   useEffect(() => {
     if (!course) dispatch(fetchCourseById(courseId));
   }, [dispatch, courseId, course]);
+
+  useEffect(() => {
+    dispatch(fetchProgress(courseId));
+  }, [dispatch, courseId]);
 
   const allSections = useMemo(() => flattenSections(course), [course]);
   const progressEntry = progress[courseId] || { completedSectionIds: [], notes: {} };
@@ -134,13 +138,13 @@ export function StudentLearningPage() {
   function goToSection(section) {
     if (!section || !isAccessible(section)) return;
     setCurrentSectionId(section.id);
-    dispatch(setLastAccessed({ courseId, sectionId: section.id }));
+    dispatch(completeLesson({ courseId, lessonId: section.id, completed: false }));
   }
 
   function handleMarkComplete() {
     if (!currentSection) return;
-    dispatch(markSectionComplete({ courseId, sectionId: currentSection.id }));
-    toast.success("Marked complete (demo only — not connected to the backend yet)");
+    dispatch(completeLesson({ courseId, lessonId: currentSection.id, completed: true }));
+    toast.success("Marked complete");
   }
 
   function handleNoteBlur() {

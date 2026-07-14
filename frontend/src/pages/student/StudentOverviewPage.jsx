@@ -11,18 +11,20 @@ import { Badge } from "../../components/common/Badge";
 import { CourseProgress } from "../../components/courses/CourseProgress";
 import { CourseCard } from "../../components/courses/CourseCard";
 import { fetchCourses } from "../../features/courses/courseSlice";
-import { getId, isFreeCourse, certificateUnlocked, countLessons } from "../../utils/courseUtils";
+import { fetchCertificates, fetchProgressForCourses } from "../../features/student/studentSlice";
+import { getId, isFreeCourse, countLessons } from "../../utils/courseUtils";
 import { formatRelativeTime } from "../../utils/formatters";
 
 export function StudentOverviewPage() {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const { items: courses, status, error } = useSelector((state) => state.courses);
-  const { favorites, freeEnrollments, progress } = useSelector((state) => state.student);
+  const { freeEnrollments, progress, certificates } = useSelector((state) => state.student);
   const notifications = useSelector((state) => state.notifications.items);
 
   useEffect(() => {
     dispatch(fetchCourses());
+    dispatch(fetchCertificates());
   }, [dispatch]);
 
   const userId = getId(user);
@@ -34,6 +36,11 @@ export function StudentOverviewPage() {
   );
 
   const enrolledCourses = useMemo(() => courses.filter(isEnrolled), [courses, isEnrolled]);
+
+  const enrolledCourseIds = useMemo(() => enrolledCourses.map((course) => course._id), [enrolledCourses]);
+  useEffect(() => {
+    if (enrolledCourseIds.length) dispatch(fetchProgressForCourses(enrolledCourseIds));
+  }, [dispatch, enrolledCourseIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const progressFor = (course) => {
     const entry = progress[course._id];
@@ -48,10 +55,7 @@ export function StudentOverviewPage() {
     return total > 0 && percent >= 100;
   });
 
-  const certificatesEarned = enrolledCourses.filter((course) => {
-    const { percent } = progressFor(course);
-    return certificateUnlocked(course, percent);
-  });
+  const certificatesEarned = certificates;
 
   const inProgressCourses = enrolledCourses.filter((course) => {
     const { percent } = progressFor(course);
@@ -149,9 +153,8 @@ export function StudentOverviewPage() {
         {latestNotifications.length ? (
           <ul className="divide-y divide-quran-line">
             {latestNotifications.map((notification) => (
-              <li key={notification.id} className="flex items-center justify-between gap-3 py-3">
+              <li key={notification._id} className="flex items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-black text-quran-text">{notification.title}</p>
                   <p className="truncate text-sm text-quran-muted">{notification.message}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">

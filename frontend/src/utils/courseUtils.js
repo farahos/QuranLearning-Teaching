@@ -95,12 +95,6 @@ export function courseStatusTone(status) {
   return "amber";
 }
 
-export function certificateUnlocked(course, progressPercent) {
-  if (!course?.certificateEnabled) return false;
-  const required = course.certificateMinCompletion ?? 100;
-  return Number(progressPercent || 0) >= required;
-}
-
 export function countLessons(course) {
   return (course?.playlists || []).reduce((sum, playlist) => sum + (playlist.sections?.length || 0), 0);
 }

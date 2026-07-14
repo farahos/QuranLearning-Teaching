@@ -7,6 +7,7 @@ import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { Card } from "../../components/common/Card";
 import { CourseProgress } from "../../components/courses/CourseProgress";
 import { fetchCourses } from "../../features/courses/courseSlice";
+import { fetchProgressForCourses } from "../../features/student/studentSlice";
 import { getId, countLessons } from "../../utils/courseUtils";
 import { formatRelativeTime } from "../../utils/formatters";
 
@@ -26,6 +27,11 @@ export function StudentProgressPage() {
     () => courses.filter((course) => (course.enrolledStudents || []).some((entry) => getId(entry.student ?? entry) === userId) || freeEnrollments.includes(course._id)),
     [courses, freeEnrollments, userId]
   );
+
+  const enrolledCourseIds = useMemo(() => enrolledCourses.map((course) => course._id), [enrolledCourses]);
+  useEffect(() => {
+    if (enrolledCourseIds.length) dispatch(fetchProgressForCourses(enrolledCourseIds));
+  }, [dispatch, enrolledCourseIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const progressHistory = useMemo(() => {
     return Object.entries(progress)
